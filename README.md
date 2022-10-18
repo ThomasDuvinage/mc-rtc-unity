@@ -29,4 +29,4 @@ Building the plugin in your own project
 cmake -B plugin/build -S plugin -DCMAKE_BUILD_TYPE=RelWithDebInfo -DUNITY_PROJECT_DIR=$HOME/MyProject
 ```
 
-- Copy `Project/Assets/McRtcWindow.cs` into your own asset folder
+- Copy `Project/Assets/McRtc/` folder into your own asset folder
