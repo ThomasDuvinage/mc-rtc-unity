@@ -54,6 +54,7 @@ ExportedObj/
 *.pidb.meta
 *.pdb.meta
 *.mdb.meta
+*.meta
 
 # Unity3D generated file on crash reports
 sysinfo.txt
@@ -75,6 +76,6 @@ crashlytics-build.properties
 /[Aa]ssets/[Ss]treamingAssets/aa/*
 
 # Assets imported by the plugin
-/[Aa]ssets/McRtc/*
+/[Aa]ssets/**/McRtc/*
 # Plugin itself
-/[Aa]ssets/Plugins/McRtcPlugin.*
+/[Aa]ssets/Plugins/**/McRtcPlugin.*

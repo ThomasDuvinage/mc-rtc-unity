@@ -23,3 +23,7 @@ if(TARGET mc_rtc::mc_rtc_ros)
   target_compile_definitions(${PROJECT_NAME} PRIVATE MC_RTC_HAS_ROS_SUPPORT)
   target_link_libraries(${PROJECT_NAME} PRIVATE mc_rtc::mc_rtc_ros)
 endif()
+
+add_executable(test_plugin src/test_plugin.cpp)
+target_link_libraries(test_plugin PUBLIC ${PROJECT_NAME})
+set_target_properties(test_plugin PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${UNITY_PROJECT_DIR}/Assets/Plugins")

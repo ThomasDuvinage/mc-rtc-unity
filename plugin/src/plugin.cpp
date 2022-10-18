@@ -105,6 +105,8 @@ struct UnityClient : public mc_control::ControllerClient
   using mc_control::ControllerClient::ControllerClient;
   using ElementId = mc_control::ElementId;
 
+  void default_impl(const std::string &, const ElementId &) override {}
+
   void started() override
   {
     for(auto & it : robots_seen)
@@ -128,7 +130,7 @@ struct UnityClient : public mc_control::ControllerClient
     for(const auto & cat : id.category)
     {
       rid += cat;
-      rid += "\n";
+      rid += "/";
     }
     rid += id.name;
     robots_seen[rid] = true;
@@ -204,8 +206,11 @@ struct UnityClient : public mc_control::ControllerClient
     const auto & mesh = boost::get<rbd::parsers::Geometry::Mesh>(visual.geometry.data);
     Eigen::Vector3f t = homo.block<3, 1>(0, 3);
     std::string path = convertURI(mesh.filename, mesh_path).string();
-    on_robot_mesh_callback(rid.c_str(), name.c_str(), path.c_str(), static_cast<float>(mesh.scale), q.w(), q.x(),
-                           q.y(), q.z(), t.x(), t.y(), t.z());
+    if(on_robot_mesh_callback)
+    {
+      on_robot_mesh_callback(rid.c_str(), name.c_str(), path.c_str(), static_cast<float>(mesh.scale), q.w(), q.x(),
+                             q.y(), q.z(), t.x(), t.y(), t.z());
+    }
   }
 
   void stopped() override
@@ -219,10 +224,7 @@ struct UnityClient : public mc_control::ControllerClient
     }
   }
 
-  void start()
-  {
-    mc_control::ControllerClient::start();
-  }
+  using mc_control::ControllerClient::run;
 
   std::map<std::string, mc_rbdyn::RobotModulePtr> modules;
   std::map<std::string, std::shared_ptr<mc_rbdyn::Robots>> robots;
@@ -230,37 +232,57 @@ struct UnityClient : public mc_control::ControllerClient
 };
 
 static std::unique_ptr<UnityClient> client;
+static std::mutex client_mutex;
+static std::vector<char> buffer(1024 * 1024);
+static auto last_received = std::chrono::system_clock::now();
+
+#ifdef WIN32
+#  define PLUGIN_EXPORT __declspec(dllexport)
+#else
+#  define PLUGIN_EXPORT
+#endif
 
 extern "C"
 {
-  void StartClient()
+  PLUGIN_EXPORT void CreateClient(const char * host_ptr)
   {
-    client = std::make_unique<UnityClient>("ipc:///tmp/mc_rtc_pub.ipc", "ipc:///tmp/mc_rtc_rep.ipc", 1.0);
-    client->start();
-  }
-
-  void RegisterCallbacks(on_robot_callback_t robot_callback,
-                         on_robot_mesh_callback_t robot_mesh_callback,
-                         on_remove_robot_callback_t remove_robot_callback)
-  {
-    on_robot_callback = robot_callback;
-    on_robot_mesh_callback = robot_mesh_callback;
-    on_remove_robot_callback = remove_robot_callback;
-  }
-
-  void StopClient()
-  {
-    if(client && on_remove_robot_callback)
+    std::unique_lock<std::mutex> lock(client_mutex);
+    std::string host = host_ptr;
+    if(host.empty())
     {
-      for(const auto & it : client->robots)
-      {
-        on_remove_robot_callback(it.first.c_str());
-      }
+      host = "localhost";
     }
+    client = std::make_unique<UnityClient>(fmt::format("tcp://{}:4242", host), fmt::format("tcp://{}:4343", host), 1.0);
+    last_received = std::chrono::system_clock::now();
+  }
+
+  PLUGIN_EXPORT void UpdateClient()
+  {
+    std::unique_lock<std::mutex> lock(client_mutex);
+    if(client)
+    {
+      client->run(buffer, last_received);
+    }
+  }
+
+  PLUGIN_EXPORT void OnRobot(on_robot_callback_t cb)
+  {
+    on_robot_callback = cb;
+  }
+
+  PLUGIN_EXPORT void OnRobotMesh(on_robot_mesh_callback_t cb)
+  {
+    on_robot_mesh_callback = cb;
+  }
+
+  PLUGIN_EXPORT void OnRemoveRobot(on_remove_robot_callback_t cb)
+  {
+    on_remove_robot_callback = cb;
+  }
+
+  PLUGIN_EXPORT void StopClient()
+  {
+    std::unique_lock<std::mutex> lock(client_mutex);
     client.reset(nullptr);
-    // FIXME We probably want a mutex here to avoid resetting the callback when it should still exist
-    on_robot_callback = nullptr;
-    on_robot_mesh_callback = nullptr;
-    on_remove_robot_callback = nullptr;
   }
 }
