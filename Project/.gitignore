@@ -77,5 +77,6 @@ crashlytics-build.properties
 
 # Assets imported by the plugin
 /[Aa]ssets/**/McRtc/*
+!/[Aa]ssets/McRtc/*.cs
 # Plugin itself
 /[Aa]ssets/Plugins/**/McRtcPlugin.*
