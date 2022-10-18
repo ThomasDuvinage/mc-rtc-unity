@@ -109,6 +109,7 @@ struct UnityClient : public mc_control::ControllerClient
 
   void started() override
   {
+    received_data = false;
     for(auto & it : robots_seen)
     {
       it.second = false;
@@ -122,6 +123,8 @@ struct UnityClient : public mc_control::ControllerClient
              const std::vector<std::vector<double>> & q,
              const sva::PTransformd & posW) override
   {
+    received_data = true;
+    received_data_once = true;
     if(!on_robot_callback)
     {
       return;
@@ -229,9 +232,12 @@ struct UnityClient : public mc_control::ControllerClient
   std::map<std::string, mc_rbdyn::RobotModulePtr> modules;
   std::map<std::string, std::shared_ptr<mc_rbdyn::Robots>> robots;
   std::map<std::string, bool> robots_seen;
+  bool received_data = false;
+  bool received_data_once = false;
 };
 
 static std::unique_ptr<UnityClient> client;
+static std::string host = "localhost";
 static std::mutex client_mutex;
 static std::vector<char> buffer(1024 * 1024);
 static auto last_received = std::chrono::system_clock::now();
@@ -247,7 +253,7 @@ extern "C"
   PLUGIN_EXPORT void CreateClient(const char * host_ptr)
   {
     std::unique_lock<std::mutex> lock(client_mutex);
-    std::string host = host_ptr;
+    host = host_ptr;
     if(host.empty())
     {
       host = "localhost";
@@ -262,6 +268,13 @@ extern "C"
     if(client)
     {
       client->run(buffer, last_received);
+      #ifdef WIN32
+      if(!client->received_data && client->received_data_once)
+      {
+        lock.unlock();
+        CreateClient(host.c_str());
+      }
+      #endif
     }
   }
 
