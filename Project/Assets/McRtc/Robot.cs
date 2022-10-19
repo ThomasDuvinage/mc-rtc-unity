@@ -67,9 +67,6 @@ namespace McRtc
             GameObject body = Object.Instantiate(obj, new Vector3(0, 0, 0), Quaternion.identity);
             body.name = name;
             body.transform.parent = transform;
-            BakedTransformation baked = body.AddComponent<BakedTransformation>();
-            baked.position = obj.transform.position;
-            baked.rotation = obj.transform.rotation;
             bodies[name] = body;
         }
 
@@ -94,11 +91,8 @@ namespace McRtc
             {
                 return;
             }
-            BakedTransformation baked = body.GetComponent<BakedTransformation>();
-            body.transform.localPosition = baked.position;
-            body.transform.localRotation = baked.rotation;
-            body.transform.Translate(new Vector3(tx, ty, tz));
-            body.transform.Rotate(new Quaternion(qx, qy, qz, qw).eulerAngles);
+            body.transform.localPosition = new Vector3(tx, ty, tz);
+            body.transform.localRotation = new Quaternion(qx, qy, qz, qw);
         }
 
         public void DeleteRobot()
