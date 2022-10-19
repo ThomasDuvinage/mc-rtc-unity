@@ -11,25 +11,30 @@ namespace McRtc
     public class Robot : MonoBehaviour
     {
         public string id;
-        private Dictionary<string, GameObject> bodies = new Dictionary<string, GameObject>();
 
-        public void ImportMesh(string name, string path, float scale)
+        private GameObject AddEmptyMesh(GameObject body, string name)
         {
-            Transform body_tf = this.transform.Find(name);
-            if (body_tf)
+            GameObject mesh = new GameObject(name, typeof(Tag));
+            mesh.transform.parent = body.transform;
+            mesh.GetComponent<Tag>().mcTag = "McRtcRobotMesh";
+            return mesh;
+        }
+
+        private GameObject ImportMesh(GameObject body, string name, string path, float scale)
+        {
+            Transform mesh_tf = body.transform.Find(name);
+            if (mesh_tf)
             {
-                bodies[name] = body_tf.gameObject;
-                return;
+                return mesh_tf.gameObject;
+            }
+            if (System.IO.File.Exists(path + ".fbx"))
+            {
+                return ImportMesh(body, name, path + ".fbx", scale);
             }
             if (!System.IO.File.Exists(path))
             {
                 Debug.LogError($"Cannot load mest at {path} for robot {this.name}");
-                bodies[name] = null;
-            }
-            if (System.IO.File.Exists(path + ".fbx"))
-            {
-                ImportMesh(name, path + ".fbx", scale);
-                return;
+                return AddEmptyMesh(body, name);
             }
             string mesh = System.IO.Path.GetFileName(path);
             string destination_path = $"{Application.dataPath}/McRtc/{this.name}/{mesh}";
@@ -62,12 +67,13 @@ namespace McRtc
             GameObject obj = (GameObject)AssetDatabase.LoadAssetAtPath($"Assets/McRtc/{this.name}/{mesh}", typeof(GameObject));
             if (!obj)
             {
-                bodies[name] = null;
+                return AddEmptyMesh(body, name);
             }
-            GameObject body = Object.Instantiate(obj, new Vector3(0, 0, 0), Quaternion.identity);
-            body.name = name;
-            body.transform.parent = transform;
-            bodies[name] = body;
+            GameObject m = Object.Instantiate(obj, new Vector3(0, 0, 0), Quaternion.identity);
+            m.name = name;
+            m.transform.parent = body.transform;
+            m.AddComponent<Tag>().mcTag = "McRtcRobotMesh";
+            return m;
         }
 
         // Start is called before the first frame update
@@ -80,28 +86,39 @@ namespace McRtc
         {
         }
 
-        public void UpdateMesh(string name, string path, float scale, float qw, float qx, float qy, float qz, float tx, float ty, float tz)
+        private GameObject FindBody(string body)
         {
-            if (!bodies.ContainsKey(name))
+            Transform body_tf = transform.Find(body);
+            if (body_tf)
             {
-                ImportMesh(name, path, scale);
+                return body_tf.gameObject;
             }
-            GameObject body = bodies[name];
-            if (!body)
-            {
-                return;
-            }
-            body.transform.localPosition = new Vector3(tx, ty, tz);
-            body.transform.localRotation = new Quaternion(qx, qy, qz, qw);
+            GameObject obj = new GameObject(body, typeof(Tag));
+            obj.transform.parent = transform;
+            obj.GetComponent<Tag>().mcTag = "McRtcRobotBody";
+            return obj;
+        }
+
+        public void UpdateBody(string body, PTransform X_0_body)
+        {
+            X_0_body.SetLocalTransform(FindBody(body));
+        }
+
+        public void UpdateMesh(string body, string name, string path, float scale, PTransform X_body_visual)
+        {
+            X_body_visual.SetLocalTransform(ImportMesh(FindBody(body), name, path, scale));
         }
 
         public void DeleteRobot()
         {
-            foreach (var body in bodies)
+            Tag[] tags = GetComponentsInChildren<Tag>();
+            foreach(Tag tag in tags)
             {
-                GameObject.DestroyImmediate(body.Value);
+                if(tag.mcTag == "McRtcRobotBody")
+                {
+                    GameObject.DestroyImmediate(tag.gameObject);
+                }
             }
-            bodies.Clear();
         }
     }
 }

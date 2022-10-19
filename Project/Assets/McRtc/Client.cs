@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using UnityEditor;
 using UnityEngine;
 
 using Action = System.Action;
@@ -14,6 +15,7 @@ namespace McRtc
     {
         public string host = "localhost";
         private Robot[] robots;
+        private bool reconnect = false;
         static Client active_instance = null;
 
         [DllImport("McRtcPlugin", CallingConvention = CallingConvention.Cdecl)]
@@ -28,8 +30,13 @@ namespace McRtc
         [DllImport("McRtcPlugin", CallingConvention = CallingConvention.Cdecl)]
         private static extern void OnRobot(OnRobotCallback cb);
 
-        // This will be called to place a robot mesh in the scene
-        private delegate void OnRobotMeshCallback(string id, string name, string path, float scale, float qw, float qx, float qy, float qz, float tx, float ty, float tz);
+        // This will be called to place a robot's body in the scene
+        private delegate void OnRobotBodyCallback(string id, string body, PTransform X_0_body);
+        [DllImport("McRtcPlugin", CallingConvention = CallingConvention.Cdecl)]
+        private static extern void OnRobotBody(OnRobotBodyCallback cb);
+
+        // This will be called to place a robot's body's mesh in the scene
+        private delegate void OnRobotMeshCallback(string id, string body, string name, string path, float scale, PTransform X_body_visual);
         [DllImport("McRtcPlugin", CallingConvention = CallingConvention.Cdecl)]
         private static extern void OnRobotMesh(OnRobotMeshCallback cb);
 
@@ -41,7 +48,7 @@ namespace McRtc
         void Start()
         {
             CreateClient(host);
-            if(active_instance != this)
+            if (active_instance != this)
             {
                 active_instance = this;
             }
@@ -62,17 +69,32 @@ namespace McRtc
             }
         }
 
-        static void OnRobotMesh(string id, string name, string path, float scale, float qw, float qx, float qy, float qz, float tx, float ty, float tz)
+        static void OnRobotBody(string rid, string body, PTransform X_0_body)
         {
-            if(!active_instance)
+            if (!active_instance)
             {
                 return;
             }
             foreach (Robot robot in active_instance.robots)
             {
-                if (robot.id == id)
+                if (robot.id == rid)
                 {
-                    robot.UpdateMesh(name, path, scale, qw, qx, qy, qz, tx, ty, tz);
+                    robot.UpdateBody(body, X_0_body);
+                }
+            }
+        }
+
+        static void OnRobotMesh(string rid, string body, string name, string path, float scale, PTransform X_body_visual)
+        {
+            if (!active_instance)
+            {
+                return;
+            }
+            foreach (Robot robot in active_instance.robots)
+            {
+                if (robot.id == rid)
+                {
+                    robot.UpdateMesh(body, name, path, scale, X_body_visual);
                 }
             }
         }
@@ -92,14 +114,14 @@ namespace McRtc
             }
         }
 
-        void OnValidate()
+        public void Reconnect()
         {
-            CreateClient(host);
+            reconnect = true;
         }
 
         void OnDestroy()
         {
-            if(active_instance == this)
+            if (active_instance == this)
             {
                 active_instance = null;
             }
@@ -123,19 +145,22 @@ namespace McRtc
             robots = Object.FindObjectsOfType<Robot>();
             active_instance = this;
             OnRobot(Client.OnRobot);
+            OnRobotBody(Client.OnRobotBody);
             OnRobotMesh(Client.OnRobotMesh);
             OnRemoveRobot(Client.OnRemoveRobot);
         }
 
         void Update()
         {
+            if (reconnect)
+            {
+                reconnect = false;
+                CreateClient(host);
+            }
             if (!Application.IsPlaying(gameObject))
             {
                 SetupCallbacks();
             }
-            OnRobot((string id) => OnRobot(id));
-            OnRobotMesh((string id, string name, string path, float scale, float qw, float qx, float qy, float qz, float tx, float ty, float tz) => OnRobotMesh(id, name, path, scale, qw, qx, qy, qz, tx, ty, tz));
-            OnRemoveRobot((string id) => OnRemoveRobot(id));
             UpdateClient();
         }
 

@@ -13,24 +13,29 @@ namespace bfs = boost::filesystem;
 #  include <ros/package.h>
 #endif
 
-using on_robot_callback_t = void (*)(const char * id);
-on_robot_callback_t on_robot_callback = nullptr;
+#include "types.h"
 
-using on_robot_mesh_callback_t = void (*)(const char * id,
-                                          const char * name,
-                                          const char * path,
-                                          float scale,
-                                          float qw,
-                                          float qx,
-                                          float qy,
-                                          float qz,
-                                          float tx,
-                                          float ty,
-                                          float tz);
-on_robot_mesh_callback_t on_robot_mesh_callback = nullptr;
+#ifdef WIN32
+#  define PLUGIN_EXPORT __declspec(dllexport)
+#else
+#  define PLUGIN_EXPORT
+#endif
 
-using on_remove_robot_callback_t = void (*)(const char * id);
-on_remove_robot_callback_t on_remove_robot_callback = nullptr;
+#define DEFINE_CALLBACK(VAR, FUNCTION, TYPE) \
+using VAR##_t = TYPE;\
+VAR##_t VAR = nullptr; \
+extern "C"\
+{\
+  PLUGIN_EXPORT void FUNCTION(VAR##_t cb)\
+  {\
+    VAR = cb;\
+  }\
+}
+
+DEFINE_CALLBACK(on_robot_callback, OnRobot, void (*)(const char * id))
+DEFINE_CALLBACK(on_robot_body_callback, OnRobotBody, void (*)(const char * id, const char * body, McRtc::PTransform X_0_body))
+DEFINE_CALLBACK(on_robot_mesh_callback, OnRobotMesh, void (*)(const char * id, const char * body, const char * name, const char * path, float scale, McRtc::PTransform X_body_visual))
+DEFINE_CALLBACK(on_remove_robot_callback, OnRemoveRobot, void (*)(const char * id))
 
 inline mc_rbdyn::RobotModulePtr fromParams(const std::vector<std::string> & p)
 {
@@ -153,15 +158,18 @@ struct UnityClient : public mc_control::ControllerClient
     auto & robot = robots_ptr->robot();
     robot.mbc().q = q;
     robot.posW(posW);
-    if(on_robot_callback)
+    on_robot_callback(rid.c_str());
+    if(!on_robot_body_callback || !on_robot_mesh_callback)
     {
-      on_robot_callback(rid.c_str());
+      return;
     }
     const auto & bodies = robot.mb().bodies();
     const auto & robot_visuals = robot.module()._visual;
     for(size_t bIdx = 0; bIdx < bodies.size(); ++bIdx)
     {
       const auto & b = bodies[bIdx];
+      const auto & X_0_b = robot.mbc().bodyPosW[bIdx];
+      on_robot_body_callback(rid.c_str(), b.name().c_str(), McRtc::ToUnity(X_0_b));
       if(!robot_visuals.count(b.name()))
       {
         continue;
@@ -170,8 +178,7 @@ struct UnityClient : public mc_control::ControllerClient
       const auto & visuals = robot_visuals.at(b.name());
       for(const auto & v : visuals)
       {
-        auto X_0_visual = v.origin * robot.mbc().bodyPosW[bIdx];
-        std::string name = b.name();
+        std::string name = fmt::format("{}_visual", b.name());
         if(visuals.size() > 1)
         {
           name = fmt::format("{}_{}", name, ++i);
@@ -180,7 +187,7 @@ struct UnityClient : public mc_control::ControllerClient
         switch(v.geometry.type)
         {
           case Geometry::MESH:
-            mesh_callback(rid, name, robot.module().path, v, X_0_visual);
+            mesh_callback(rid, b.name(), name, robot.module().path, v);
             break;
           default:
             break;
@@ -190,30 +197,15 @@ struct UnityClient : public mc_control::ControllerClient
   }
 
   void mesh_callback(const std::string & rid,
+                     const std::string & body,
                      const std::string & name,
                      const std::string & mesh_path,
-                     const rbd::parsers::Visual & visual,
-                     const sva::PTransformd & X_0_visual)
+                     const rbd::parsers::Visual & visual)
   {
-    static auto to_unity = []() -> Eigen::Matrix4f {
-      Eigen::Matrix4f out = Eigen::Matrix4f::Zero();
-      out(0, 0) = 1.0f;
-      out(1, 2) = 1.0f;
-      out(2, 1) = 1.0f;
-      out(3, 3) = 1.0f;
-      return out;
-    }();
-    auto homo =
-        to_unity * sva::conversions::toHomogeneous(X_0_visual.cast<float>(), sva::conversions::RightHanded) * to_unity;
-    Eigen::Quaternionf q(homo.block<3, 3>(0, 0));
     const auto & mesh = boost::get<rbd::parsers::Geometry::Mesh>(visual.geometry.data);
-    Eigen::Vector3f t = homo.block<3, 1>(0, 3);
     std::string path = convertURI(mesh.filename, mesh_path).string();
-    if(on_robot_mesh_callback)
-    {
-      on_robot_mesh_callback(rid.c_str(), name.c_str(), path.c_str(), static_cast<float>(mesh.scale), q.w(), q.x(),
-                             q.y(), q.z(), t.x(), t.y(), t.z());
-    }
+    on_robot_mesh_callback(rid.c_str(), body.c_str(), name.c_str(), path.c_str(), static_cast<float>(mesh.scale),
+                           McRtc::ToUnity(visual.origin));
   }
 
   void stopped() override
@@ -241,12 +233,6 @@ static std::string host = "localhost";
 static std::mutex client_mutex;
 static std::vector<char> buffer(1024 * 1024);
 static auto last_received = std::chrono::system_clock::now();
-
-#ifdef WIN32
-#  define PLUGIN_EXPORT __declspec(dllexport)
-#else
-#  define PLUGIN_EXPORT
-#endif
 
 extern "C"
 {
@@ -276,21 +262,6 @@ extern "C"
       }
       #endif
     }
-  }
-
-  PLUGIN_EXPORT void OnRobot(on_robot_callback_t cb)
-  {
-    on_robot_callback = cb;
-  }
-
-  PLUGIN_EXPORT void OnRobotMesh(on_robot_mesh_callback_t cb)
-  {
-    on_robot_mesh_callback = cb;
-  }
-
-  PLUGIN_EXPORT void OnRemoveRobot(on_remove_robot_callback_t cb)
-  {
-    on_remove_robot_callback = cb;
   }
 
   PLUGIN_EXPORT void StopClient()
