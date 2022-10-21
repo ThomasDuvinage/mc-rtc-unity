@@ -15,6 +15,7 @@ namespace McRtc
     {
         public string host = "localhost";
         private Robot[] robots;
+        private Trajectory[] trajectories;
         private bool reconnect = false;
         static Client active_instance = null;
 
@@ -41,9 +42,14 @@ namespace McRtc
         private static extern void OnRobotMesh(OnRobotMeshCallback cb);
 
         // This will be called when a robot is removed from the scene
-        private delegate void OnRemoveRobotCallback(string id);
+        private delegate void OnRemoveElementCallback(string id, string type);
         [DllImport("McRtcPlugin", CallingConvention = CallingConvention.Cdecl)]
-        private static extern void OnRemoveRobot(OnRemoveRobotCallback cb);
+        private static extern void OnRemoveElement(OnRemoveElementCallback cb);
+
+        // This will be called when a trajectory should be visible in the scene
+        private delegate void OnTrajectoryVector3dCallback(string id, IntPtr data, nuint size);
+        [DllImport("McRtcPlugin", CallingConvention = CallingConvention.Cdecl)]
+        private static extern void OnTrajectoryVector3d(OnTrajectoryVector3dCallback cb);
 
         void Start()
         {
@@ -95,21 +101,51 @@ namespace McRtc
                 if (robot.id == rid)
                 {
                     robot.UpdateMesh(body, name, path, scale, X_body_visual);
+                    return;
                 }
             }
         }
 
-        static void OnRemoveRobot(string id)
+        static void OnTrajectoryVector3d(string tid, IntPtr data, nuint size)
+        {
+            if(!active_instance)
+            {
+                return;
+            }
+            foreach(Trajectory trajectory in active_instance.trajectories)
+            {
+                if(trajectory.id == tid)
+                {
+                    trajectory.UpdatePoints(data, size);
+                    return;
+                }
+            }
+        }
+
+        static void OnRemoveElement(string id, string type)
         {
             if (!active_instance)
             {
                 return;
             }
-            foreach (Robot robot in active_instance.robots)
+            if (type == "robot")
             {
-                if (robot.id == id)
+                foreach (Robot robot in active_instance.robots)
                 {
-                    robot.DeleteRobot();
+                    if (robot.id == id)
+                    {
+                        robot.DeleteRobot();
+                    }
+                }
+            }
+            if(type == "trajectory")
+            {
+                foreach(Trajectory traj in active_instance.trajectories)
+                {
+                    if (traj.id == id)
+                    {
+                        traj.DeleteTrajectory();
+                    }
                 }
             }
         }
@@ -143,11 +179,13 @@ namespace McRtc
                 active_instance = this;
             }
             robots = Object.FindObjectsOfType<Robot>();
+            trajectories = Object.FindObjectsOfType<Trajectory>();
             active_instance = this;
             OnRobot(Client.OnRobot);
             OnRobotBody(Client.OnRobotBody);
             OnRobotMesh(Client.OnRobotMesh);
-            OnRemoveRobot(Client.OnRemoveRobot);
+            OnTrajectoryVector3d(Client.OnTrajectoryVector3d);
+            OnRemoveElement(Client.OnRemoveElement);
         }
 
         void Update()

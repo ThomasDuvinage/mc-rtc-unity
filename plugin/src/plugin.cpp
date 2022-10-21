@@ -35,7 +35,8 @@ extern "C"\
 DEFINE_CALLBACK(on_robot_callback, OnRobot, void (*)(const char * id))
 DEFINE_CALLBACK(on_robot_body_callback, OnRobotBody, void (*)(const char * id, const char * body, McRtc::PTransform X_0_body))
 DEFINE_CALLBACK(on_robot_mesh_callback, OnRobotMesh, void (*)(const char * id, const char * body, const char * name, const char * path, float scale, McRtc::PTransform X_body_visual))
-DEFINE_CALLBACK(on_remove_robot_callback, OnRemoveRobot, void (*)(const char * id))
+DEFINE_CALLBACK(on_trajectory_vector3d_callback, OnTrajectoryVector3d, void (*)(const char * id, float * data, size_t npoints))
+DEFINE_CALLBACK(on_remove_element_callback, OnRemoveElement, void (*)(const char * id, const char * type))
 
 inline mc_rbdyn::RobotModulePtr fromParams(const std::vector<std::string> & p)
 {
@@ -115,13 +116,68 @@ struct UnityClient : public mc_control::ControllerClient
   void started() override
   {
     received_data = false;
-    for(auto & it : robots_seen)
+    for(auto & it : seen_)
     {
-      it.second = false;
+      it.second.seen = false;
     }
   }
 
+  std::string id2unity(const ElementId& id)
+  {
+    std::string rid;
+    for(const auto & cat : id.category)
+    {
+      rid += cat;
+      rid += "/";
+    }
+    rid += id.name;
+    return rid;
+  }
+
   void category(const std::vector<std::string> & parent, const std::string & category) override {}
+
+  void tag_element(const std::string& id, const std::string& type)
+  {
+    auto it = seen_.find(id);
+    if(it == seen_.end())
+    {
+      seen_[id] = {type, true};
+      return;
+    }
+    auto & tag = it->second;
+    tag.seen = true;
+    if(tag.type == type)
+    {
+      return;
+    }
+    if(on_remove_element_callback)
+    {
+      on_remove_element_callback(id.c_str(), tag.type.c_str());
+    }
+    tag.type = type;
+  }
+
+  void trajectory(const ElementId & id,
+                  const std::vector<Eigen::Vector3d> & points,
+                  const mc_rtc::gui::LineConfig & /* config */) override
+  {
+    if(!on_trajectory_vector3d_callback)
+    {
+      return;
+    }
+    std::string tid = id2unity(id);
+    tag_element(tid, "trajectory");
+    float_buffer.resize(3 * points.size());
+    size_t i = 0;
+    for(const auto & p : points)
+    {
+      float_buffer[3 * i + 0] = static_cast<float>(p.x());
+      float_buffer[3 * i + 1] = static_cast<float>(p.y());
+      float_buffer[3 * i + 2] = static_cast<float>(p.z());
+      i += 1;
+    }
+    on_trajectory_vector3d_callback(tid.c_str(), float_buffer.data(), points.size());
+  }
 
   void robot(const ElementId & id,
              const std::vector<std::string> & parameters,
@@ -134,14 +190,8 @@ struct UnityClient : public mc_control::ControllerClient
     {
       return;
     }
-    std::string rid;
-    for(const auto & cat : id.category)
-    {
-      rid += cat;
-      rid += "/";
-    }
-    rid += id.name;
-    robots_seen[rid] = true;
+    std::string rid = id2unity(id);
+    tag_element(rid, "robot");
     if(!robots.count(rid) || modules[rid]->parameters() != parameters)
     {
       modules[rid] = fromParams(parameters);
@@ -210,11 +260,11 @@ struct UnityClient : public mc_control::ControllerClient
 
   void stopped() override
   {
-    for(const auto & it : robots_seen)
+    for(const auto & it : seen_)
     {
-      if(!it.second && on_remove_robot_callback)
+      if(!it.second.seen && on_remove_element_callback)
       {
-        on_remove_robot_callback(it.first.c_str());
+        on_remove_element_callback(it.first.c_str(), it.second.type.c_str());
       }
     }
   }
@@ -223,9 +273,15 @@ struct UnityClient : public mc_control::ControllerClient
 
   std::map<std::string, mc_rbdyn::RobotModulePtr> modules;
   std::map<std::string, std::shared_ptr<mc_rbdyn::Robots>> robots;
-  std::map<std::string, bool> robots_seen;
+  struct ElementSeen
+  {
+    std::string type;
+    bool seen;
+  };
+  std::map<std::string, ElementSeen> seen_;
   bool received_data = false;
   bool received_data_once = false;
+  std::vector<float> float_buffer;
 };
 
 static std::unique_ptr<UnityClient> client;
