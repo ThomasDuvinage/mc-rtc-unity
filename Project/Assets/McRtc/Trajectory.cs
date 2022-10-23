@@ -40,6 +40,7 @@ namespace McRtc
                 points[i].x = point[0];
                 points[i].z = point[1];
                 points[i].y = point[2];
+                points[i] = transform.TransformPoint(points[i]);
                 data += 3 * sizeof(float);
             }
         }
