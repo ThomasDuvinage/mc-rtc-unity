@@ -8,9 +8,8 @@ using IntPtr = System.IntPtr;
 namespace McRtc
 {
     [ExecuteAlways]
-    public class Trajectory : MonoBehaviour
+    public class Trajectory : Element
     {
-        public string id;
         private Vector3[] points = new Vector3[0];
         // Start is called before the first frame update
         void Start()

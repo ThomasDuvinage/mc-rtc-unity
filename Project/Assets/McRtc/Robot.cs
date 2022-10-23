@@ -10,9 +10,8 @@ using UnityEngine.Rendering;
 namespace McRtc
 {
     [ExecuteAlways]
-    public class Robot : MonoBehaviour
+    public class Robot : Element
     {
-        public string id;
         public float alpha = 1.0f;
 
         private GameObject AddEmptyMesh(GameObject body, string name)
@@ -82,7 +81,6 @@ namespace McRtc
         // Start is called before the first frame update
         void Start()
         {
-
         }
 
         public void UpdateRobot()

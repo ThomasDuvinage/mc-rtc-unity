@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
 
-using Action = System.Action;
 using IntPtr = System.IntPtr;
 using System.Linq;
 using System.Runtime.InteropServices;
@@ -14,8 +13,7 @@ namespace McRtc
     public class Client : MonoBehaviour
     {
         public string host = "localhost";
-        private Robot[] robots;
-        private Trajectory[] trajectories;
+        private Dictionary<System.Type, Element[]> elements = new Dictionary<System.Type, Element[]>();
         private bool reconnect = false;
         static Client active_instance = null;
 
@@ -25,6 +23,11 @@ namespace McRtc
         private static extern void UpdateClient();
         [DllImport("McRtcPlugin", CallingConvention = CallingConvention.Cdecl)]
         private static extern void StopClient();
+
+        // Used to send message from the plugin to Unity console
+        private delegate void DebugLogCallbackT(string id);
+        [DllImport("McRtcPlugin", CallingConvention = CallingConvention.Cdecl)]
+        private static extern void DebugLogCallback(DebugLogCallbackT cb);
 
         // This will be called when a new robot is seen by the GUI
         private delegate void OnRobotCallback(string id);
@@ -51,6 +54,32 @@ namespace McRtc
         [DllImport("McRtcPlugin", CallingConvention = CallingConvention.Cdecl)]
         private static extern void OnTrajectoryVector3d(OnTrajectoryVector3dCallback cb);
 
+        // This will be called when a transform should be visible in the scene
+        private delegate void OnTransformCallback(string id, bool ro, PTransform pt);
+        [DllImport("McRtcPlugin", CallingConvention = CallingConvention.Cdecl)]
+        private static extern void OnTransform(OnTransformCallback cb);
+
+        // This can be called to send a Transform request to the server
+        [DllImport("McRtcPlugin", CallingConvention = CallingConvention.Cdecl)]
+        public static extern void SendTransformRequest(string id, PTransform pt);
+
+        static private void DoOn<T>(string id, System.Action<T> action) where T : Element
+        {
+            if(active_instance == null)
+            {
+                return;
+            }
+            T[] elements = (T[])active_instance.elements[typeof(T)];
+            foreach(T item in elements)
+            {
+                if(item.id == id)
+                {
+                    action(item);
+                    return;
+                }
+            }
+        }
+
         void Start()
         {
             CreateClient(host);
@@ -60,93 +89,49 @@ namespace McRtc
             }
         }
 
+        static void DebugLog(string msg)
+        {
+            Debug.Log(msg);
+        }
+
         static void OnRobot(string id)
         {
-            if (!active_instance)
-            {
-                return;
-            }
-            foreach (Robot robot in active_instance.robots)
-            {
-                if (robot.id == id)
-                {
-                    robot.UpdateRobot();
-                }
-            }
+            DoOn<Robot>(id, r => r.UpdateRobot());
         }
 
         static void OnRobotBody(string rid, string body, PTransform X_0_body)
         {
-            if (!active_instance)
-            {
-                return;
-            }
-            foreach (Robot robot in active_instance.robots)
-            {
-                if (robot.id == rid)
-                {
-                    robot.UpdateBody(body, X_0_body);
-                }
-            }
+            DoOn<Robot>(rid, r => r.UpdateBody(body, X_0_body));
         }
 
         static void OnRobotMesh(string rid, string body, string name, string path, float scale, PTransform X_body_visual)
         {
-            if (!active_instance)
-            {
-                return;
-            }
-            foreach (Robot robot in active_instance.robots)
-            {
-                if (robot.id == rid)
-                {
-                    robot.UpdateMesh(body, name, path, scale, X_body_visual);
-                    return;
-                }
-            }
+            DoOn<Robot>(rid, r => r.UpdateMesh(body, name, path, scale, X_body_visual));
         }
 
         static void OnTrajectoryVector3d(string tid, IntPtr data, nuint size)
         {
-            if(!active_instance)
-            {
-                return;
-            }
-            foreach(Trajectory trajectory in active_instance.trajectories)
-            {
-                if(trajectory.id == tid)
-                {
-                    trajectory.UpdatePoints(data, size);
-                    return;
-                }
-            }
+            DoOn<Trajectory>(tid, t => t.UpdatePoints(data, size));
+        }
+
+        static void OnTransform(string tid, bool ro, PTransform pt)
+        {
+            DoOn<TransformElement>(tid, t => t.UpdateTransform(ro, pt));
         }
 
         static void OnRemoveElement(string id, string type)
         {
-            if (!active_instance)
+            switch (type)
             {
-                return;
-            }
-            if (type == "robot")
-            {
-                foreach (Robot robot in active_instance.robots)
-                {
-                    if (robot.id == id)
-                    {
-                        robot.DeleteRobot();
-                    }
-                }
-            }
-            if(type == "trajectory")
-            {
-                foreach(Trajectory traj in active_instance.trajectories)
-                {
-                    if (traj.id == id)
-                    {
-                        traj.DeleteTrajectory();
-                    }
-                }
+                case "robot":
+                    DoOn<Robot>(id, r => r.DeleteRobot());
+                    break;
+                case "trajectory":
+                    DoOn<Trajectory>(id, t => t.DeleteTrajectory());
+                    break;
+                case "transform":
+                    DoOn<TransformElement>(id, t => t.DeleteTransform());
+                    break;
             }
         }
 
@@ -178,13 +163,16 @@ namespace McRtc
             {
                 active_instance = this;
             }
-            robots = Object.FindObjectsOfType<Robot>();
-            trajectories = Object.FindObjectsOfType<Trajectory>();
+            elements[typeof(Robot)] = Object.FindObjectsOfType<Robot>();
+            elements[typeof(Trajectory)] = Object.FindObjectsOfType<Trajectory>();
+            elements[typeof(TransformElement)] = Object.FindObjectsOfType<TransformElement>();
             active_instance = this;
+            DebugLogCallback(Client.DebugLog);
             OnRobot(Client.OnRobot);
             OnRobotBody(Client.OnRobotBody);
             OnRobotMesh(Client.OnRobotMesh);
             OnTrajectoryVector3d(Client.OnTrajectoryVector3d);
+            OnTransform(Client.OnTransform);
             OnRemoveElement(Client.OnRemoveElement);
         }
 

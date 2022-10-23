@@ -33,10 +33,31 @@ extern "C"\
 }
 
 DEFINE_CALLBACK(on_robot_callback, OnRobot, void (*)(const char * id))
-DEFINE_CALLBACK(on_robot_body_callback, OnRobotBody, void (*)(const char * id, const char * body, McRtc::PTransform X_0_body))
-DEFINE_CALLBACK(on_robot_mesh_callback, OnRobotMesh, void (*)(const char * id, const char * body, const char * name, const char * path, float scale, McRtc::PTransform X_body_visual))
-DEFINE_CALLBACK(on_trajectory_vector3d_callback, OnTrajectoryVector3d, void (*)(const char * id, float * data, size_t npoints))
+DEFINE_CALLBACK(on_robot_body_callback,
+                OnRobotBody,
+                void (*)(const char * id, const char * body, McRtc::PTransform X_0_body))
+DEFINE_CALLBACK(on_robot_mesh_callback,
+                OnRobotMesh,
+                void (*)(const char * id,
+                         const char * body,
+                         const char * name,
+                         const char * path,
+                         float scale,
+                         McRtc::PTransform X_body_visual))
+DEFINE_CALLBACK(on_trajectory_vector3d_callback,
+                OnTrajectoryVector3d,
+                void (*)(const char * id, float * data, size_t npoints))
+DEFINE_CALLBACK(on_transform_callback, OnTransform, void (*)(const char * id, bool ro, McRtc::PTransform pt))
 DEFINE_CALLBACK(on_remove_element_callback, OnRemoveElement, void (*)(const char * id, const char * type))
+
+DEFINE_CALLBACK(debug_log_callback, DebugLogCallback, void (*)(const char * message));
+static void DebugLog(const std::string & msg)
+{
+  if(debug_log_callback)
+  {
+    debug_log_callback(msg.c_str());
+  }
+}
 
 inline mc_rbdyn::RobotModulePtr fromParams(const std::vector<std::string> & p)
 {
@@ -155,6 +176,23 @@ struct UnityClient : public mc_control::ControllerClient
       on_remove_element_callback(id.c_str(), tag.type.c_str());
     }
     tag.type = type;
+  }
+
+  void transform(const ElementId & /*id*/, const ElementId & requestId, bool ro, const sva::PTransformd & pt) override
+  {
+    if(!on_transform_callback)
+    {
+      return;
+    }
+    std::string tid = id2unity(requestId);
+    tag_element(tid, "transform");
+    on_transform_callback(tid.c_str(), ro, McRtc::ToUnity(pt));
+    auto it = transform_requests_.find(tid);
+    if(it != transform_requests_.end())
+    {
+      send_request(requestId, it->second);
+      transform_requests_.erase(it);
+    }
   }
 
   void trajectory(const ElementId & id,
@@ -282,6 +320,7 @@ struct UnityClient : public mc_control::ControllerClient
   bool received_data = false;
   bool received_data_once = false;
   std::vector<float> float_buffer;
+  std::map<std::string, sva::PTransformd> transform_requests_;
 };
 
 static std::unique_ptr<UnityClient> client;
@@ -318,6 +357,15 @@ extern "C"
       }
       #endif
     }
+  }
+
+  PLUGIN_EXPORT void SendTransformRequest(const char * id, McRtc::PTransform pt)
+  {
+    if(!client)
+    {
+      return;
+    }
+    client->transform_requests_[id] = McRtc::FromUnity(pt);
   }
 
   PLUGIN_EXPORT void StopClient()

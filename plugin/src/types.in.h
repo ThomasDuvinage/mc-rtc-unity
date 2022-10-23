@@ -8,31 +8,42 @@
 namespace McRtc
 {
 
+@SEQUENTIAL_STRUCT@
 @PUBLIC_ATTRIBUTE@ struct Vec3
-{
-  @PUBLIC_ATTRIBUTE@ float x;
-  @PUBLIC_ATTRIBUTE@ float y;
-  @PUBLIC_ATTRIBUTE@ float z;
-#if MC_RTC_CSHARP
-  public Vector3 ToVector3()
   {
-    return new Vector3(x, y, z);
-  }
+    @PUBLIC_ATTRIBUTE@ float x;
+    @PUBLIC_ATTRIBUTE@ float y;
+    @PUBLIC_ATTRIBUTE@ float z;
+#if MC_RTC_CSHARP
+    public Vec3(Vector3 v)
+    {
+      this.x = v.x;
+      this.y = v.y;
+      this.z = v.z;
+    }
+
+  public
+    Vector3 ToVector3()
+    {
+      return new Vector3(x, y, z);
+    }
+
 #endif
 }@END_STRUCT@
 
 #if MC_RTC_CPP
-template<typename T>
-Vec3 convert(const Eigen::Vector3<T> & v)
+Eigen::Vector3f ToEigen(const Vec3 & v)
 {
-  Vec3 vec;
-  vec.x = static_cast<float>(v.x());
-  vec.y = static_cast<float>(v.y());
-  vec.z = static_cast<float>(v.z());
-  return vec;
+  return Eigen::Vector3f(v.x, v.y, v.z);
+}
+
+Vec3 FromEigen(const Eigen::Vector3f & v)
+{
+  return {v.x(), v.y(), v.z()};
 }
 #endif
 
+@SEQUENTIAL_STRUCT@
 @PUBLIC_ATTRIBUTE@ struct Quat
 {
   @PUBLIC_ATTRIBUTE@ float x;
@@ -40,6 +51,14 @@ Vec3 convert(const Eigen::Vector3<T> & v)
   @PUBLIC_ATTRIBUTE@ float z;
   @PUBLIC_ATTRIBUTE@ float w;
 #if MC_RTC_CSHARP
+  public Quat(Quaternion q)
+  {
+    this.x = q.x;
+    this.y = q.y;
+    this.z = q.z;
+    this.w = q.w;
+  }
+
   public Quaternion ToQuaternion()
   {
     return new Quaternion(x, y, z, w);
@@ -48,41 +67,53 @@ Vec3 convert(const Eigen::Vector3<T> & v)
 }@END_STRUCT@
 
 #if MC_RTC_CPP
-template<typename T>
-Quat convert(const Eigen::Quaternion<T> & q)
+Eigen::Quaternionf ToEigen(const Quat & q)
 {
-  Quat qOut;
-  qOut.x = static_cast<float>(q.x());
-  qOut.y = static_cast<float>(q.y());
-  qOut.z = static_cast<float>(q.z());
-  qOut.w = static_cast<float>(q.w());
-  return qOut;
+  return Eigen::Quaternionf(q.w, q.x, q.y, q.z);
+}
+Quat FromEigen(const Eigen::Quaternionf& q)
+{
+  return { q.x(), q.y(), q.z(), q.w()};
 }
 #endif
 
+@SEQUENTIAL_STRUCT@
 @PUBLIC_ATTRIBUTE@ struct PTransform
 {
-  @PUBLIC_ATTRIBUTE@ Vec3 translation;
   @PUBLIC_ATTRIBUTE@ Quat rotation;
+  @PUBLIC_ATTRIBUTE@ Vec3 translation;
 #if MC_RTC_CSHARP
+  public PTransform(Quaternion rotation, Vector3 translation)
+  {
+    this.rotation = new Quat(rotation);
+    this.translation = new Vec3(translation);
+  }
+
   public void SetLocalTransform(GameObject obj)
   {
     obj.transform.localPosition = translation.ToVector3();
     obj.transform.localRotation = rotation.ToQuaternion();
   }
+
+  public void SetTransform(GameObject obj)
+  {
+    obj.transform.position = translation.ToVector3();
+    obj.transform.rotation = rotation.ToQuaternion();
+  }
+
+  static public PTransform FromLocalTransform(GameObject obj)
+  {
+    return new PTransform(obj.transform.localRotation, obj.transform.localPosition);
+  }
+
+  static public PTransform FromTransform(GameObject obj)
+  {
+    return new PTransform(obj.transform.rotation, obj.transform.position);
+  }
 #endif
 }@END_STRUCT@
 
 #if MC_RTC_CPP
-template<typename T>
-PTransform convert(const sva::PTransform<T> & pt)
-{
-  PTransform ptOut;
-  ptOut.translation = convert(pt.translation());
-  ptOut.rotation = convert(Eigen::Quaterniond(pt.rotation()));
-  return ptOut;
-}
-
 PTransform ToUnity(const sva::PTransformd & pt)
 {
   static auto to_unity = []() -> Eigen::Matrix4f {
@@ -98,9 +129,26 @@ PTransform ToUnity(const sva::PTransformd & pt)
   Eigen::Quaternionf q(homo.block<3, 3>(0, 0));
   Eigen::Vector3f t = homo.block<3, 1>(0, 3);
   PTransform ptOut;
-  ptOut.translation = convert(t);
-  ptOut.rotation = convert(q);
+  ptOut.translation = FromEigen(t);
+  ptOut.rotation = FromEigen(q);
   return ptOut;
+}
+
+sva::PTransformd FromUnity(const PTransform & pt)
+{
+  Eigen::Matrix4f homo = Eigen::Matrix4f::Identity();
+  homo.block<3, 3>(0, 0) = ToEigen(pt.rotation).toRotationMatrix();
+  homo.block<3, 1>(0, 3) = ToEigen(pt.translation);
+  static auto from_unity = []() -> Eigen::Matrix4f
+  {
+    Eigen::Matrix4f out = Eigen::Matrix4f::Zero();
+    out(0, 0) = 1.0f;
+    out(1, 2) = 1.0f;
+    out(2, 1) = 1.0f;
+    out(3, 3) = 1.0f;
+    return out;
+  }();
+  return sva::conversions::fromHomogeneous((from_unity * homo * from_unity).cast<double>());
 }
 #endif
 
