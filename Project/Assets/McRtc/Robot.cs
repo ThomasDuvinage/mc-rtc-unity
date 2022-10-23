@@ -5,12 +5,15 @@ using System.Runtime.InteropServices;
 
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.Rendering;
 
 namespace McRtc
 {
+    [ExecuteAlways]
     public class Robot : MonoBehaviour
     {
         public string id;
+        public float alpha = 1.0f;
 
         private GameObject AddEmptyMesh(GameObject body, string name)
         {
@@ -106,7 +109,66 @@ namespace McRtc
 
         public void UpdateMesh(string body, string name, string path, float scale, PTransform X_body_visual)
         {
-            X_body_visual.SetLocalTransform(ImportMesh(FindBody(body), name, path, scale));
+            GameObject mesh = ImportMesh(FindBody(body), name, path, scale);
+            X_body_visual.SetLocalTransform(mesh);
+            MeshRenderer[] renderers = null;
+            MeshRenderer r = mesh.GetComponent<MeshRenderer>();
+            if (r)
+            {
+                renderers = new MeshRenderer[]{r};
+            }
+            else
+            {
+                renderers = mesh.GetComponentsInChildren<MeshRenderer>();
+            }
+            foreach (MeshRenderer renderer in renderers)
+            {
+                if (renderer == null)
+                {
+                    return;
+                }
+                Material material = null;
+                if (!Application.IsPlaying(this))
+                {
+                    material = renderer.sharedMaterial;
+                }
+                else
+                {
+                    material = renderer.material;
+                }
+                if (!material)
+                {
+                    return;
+                }
+                // Material setting from https://github.com/Unity-Technologies/UnityCsReference/blob/master/Editor/Mono/Inspector/StandardShaderGUI.cs
+                if (!material.IsKeywordEnabled("_ALPHAPREMULTIPLY_ON") && alpha < 1.0F)
+                {
+                    material.SetOverrideTag("RenderType", "Transparent");
+                    material.SetFloat("_Mode", 3);
+                    material.SetFloat("_SrcBlend", (float)UnityEngine.Rendering.BlendMode.One);
+                    material.SetFloat("_DstBlend", (float)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
+                    material.SetFloat("_ZWrite", 0.0f);
+                    material.DisableKeyword("_ALPHATEST_ON");
+                    material.DisableKeyword("_ALPHABLEND_ON");
+                    material.EnableKeyword("_ALPHAPREMULTIPLY_ON");
+                    material.renderQueue = (int)UnityEngine.Rendering.RenderQueue.Transparent;
+                }
+                else if (material.IsKeywordEnabled("_ALPHAPREMULTIPLY_ON") && alpha >= 1.0F)
+                {
+                    material.SetOverrideTag("RenderType", "");
+                    material.SetFloat("_Mode", 0);
+                    material.SetFloat("_SrcBlend", (float)UnityEngine.Rendering.BlendMode.One);
+                    material.SetFloat("_DstBlend", (float)UnityEngine.Rendering.BlendMode.Zero);
+                    material.SetFloat("_ZWrite", 1.0f);
+                    material.DisableKeyword("_ALPHATEST_ON");
+                    material.DisableKeyword("_ALPHABLEND_ON");
+                    material.DisableKeyword("_ALPHAPREMULTIPLY_ON");
+                    material.renderQueue = -1;
+                }
+                Color color = material.color;
+                color.a = alpha;
+                material.color = color;
+            }
         }
 
         public void DeleteRobot()
