@@ -5,15 +5,14 @@
 extern "C"
 {
 
-extern void CreateClient(const char *);
+  extern void CreateClient(const char *);
 
-using on_robot_callback_t = void (*)(const char * id);
-extern void OnRobot(on_robot_callback_t robot);
+  using on_robot_callback_t = void (*)(const char * id);
+  extern void OnRobot(on_robot_callback_t robot);
 
-extern void UpdateClient();
+  extern void UpdateClient();
 
-extern void StopClient();
-
+  extern void StopClient();
 }
 
 void OnRobotCb(const char * id)

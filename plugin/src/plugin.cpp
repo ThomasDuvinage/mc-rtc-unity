@@ -21,17 +21,17 @@ namespace bfs = boost::filesystem;
 #  define PLUGIN_EXPORT
 #endif
 
-#define DEFINE_CALLBACK(VAR, FUNCTION, TYPE, ...) \
-using VAR##_t = TYPE;\
-VAR##_t VAR = nullptr; \
-extern "C"\
-{\
-  PLUGIN_EXPORT void FUNCTION(VAR##_t cb)\
-  {\
-    std::vector<std::string> args = {__VA_ARGS__};\
-    VAR = cb;\
-  }\
-}
+#define DEFINE_CALLBACK(VAR, FUNCTION, TYPE, ...)    \
+  using VAR##_t = TYPE;                              \
+  VAR##_t VAR = nullptr;                             \
+  extern "C"                                         \
+  {                                                  \
+    PLUGIN_EXPORT void FUNCTION(VAR##_t cb)          \
+    {                                                \
+      std::vector<std::string> args = {__VA_ARGS__}; \
+      VAR = cb;                                      \
+    }                                                \
+  }
 
 #include "callbacks.h"
 
@@ -127,7 +127,7 @@ struct UnityClient : public mc_control::ControllerClient
     }
   }
 
-  std::string id2unity(const ElementId& id)
+  std::string id2unity(const ElementId & id)
   {
     std::string rid;
     for(const auto & cat : id.category)
@@ -141,7 +141,7 @@ struct UnityClient : public mc_control::ControllerClient
 
   void category(const std::vector<std::string> & parent, const std::string & category) override {}
 
-  void tag_element(const std::string& id, const std::string& type)
+  void tag_element(const std::string & id, const std::string & type)
   {
     auto it = seen_.find(id);
     if(it == seen_.end())
@@ -333,13 +333,13 @@ extern "C"
     if(client)
     {
       client->run(buffer, last_received);
-      #ifdef WIN32
+#ifdef WIN32
       if(!client->received_data && client->received_data_once)
       {
         lock.unlock();
         CreateClient(host.c_str());
       }
-      #endif
+#endif
     }
   }
 
