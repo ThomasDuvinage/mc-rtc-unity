@@ -52,11 +52,11 @@ add_executable(generate_client src/generate_client.cpp "${PROJECT_BINARY_DIR}/in
 target_include_directories(generate_client PUBLIC "${PROJECT_BINARY_DIR}/include")
 target_link_libraries(generate_client PUBLIC mc_rtc::mc_control_client)
 add_custom_command(OUTPUT "${UNITY_PROJECT_DIR}/Assets/McRtc/ClientBase.cs"
-				   COMMAND generate_client "${UNITY_PROJECT_DIR}/Assets/McRtc"
-				   DEPENDS generate_client)
+                   COMMAND generate_client "${UNITY_PROJECT_DIR}/Assets/McRtc"
+                   DEPENDS generate_client)
 add_custom_target(generate_assets
-				  COMMAND "${CMAKE_COMMAND}" -E copy_directory "${DEFAULT_UNITY_PROJECT_DIR}/Assets/McRtc" "${UNITY_PROJECT_DIR}/Assets/McRtc"
-				  DEPENDS ClientBase.cs)
+                  COMMAND "${CMAKE_COMMAND}" -E copy_directory "${DEFAULT_UNITY_PROJECT_DIR}/Assets/McRtc" "${UNITY_PROJECT_DIR}/Assets/McRtc"
+                  DEPENDS "${UNITY_PROJECT_DIR}/Assets/McRtc/ClientBase.cs")
 add_dependencies(${PROJECT_NAME} generate_assets)
 
 

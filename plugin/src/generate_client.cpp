@@ -9,6 +9,7 @@ template<typename T>
 std::string TypeToStr()
 {
   static_assert(!std::is_same_v<T, T>, "TypeToStr not implement for this type");
+  return "";
 }
 
 #define TYPE_TO_STR(T, STR)  \
@@ -37,7 +38,7 @@ struct PointerToDelegate
 template<typename RetT, typename... Args>
 struct PointerToDelegate<RetT (*)(Args...)>
 {
-  template<typename Arg, typename... Args>
+  template<typename Arg, typename... OtherArgs>
   void print_args(std::ostream & os, const std::vector<std::string> & names, size_t i = 0)
   {
     if(i != 0)
@@ -45,9 +46,9 @@ struct PointerToDelegate<RetT (*)(Args...)>
       os << ", ";
     }
     os << TypeToStr<Arg>() << " " << names[i];
-    if constexpr(sizeof...(Args))
+    if constexpr(sizeof...(OtherArgs))
     {
-      print_args<Args...>(os, names, i + 1);
+      print_args<OtherArgs...>(os, names, i + 1);
     }
   }
 
