@@ -141,25 +141,27 @@ struct UnityClient : public mc_control::ControllerClient
 
   void category(const std::vector<std::string> & parent, const std::string & category) override {}
 
-  void tag_element(const std::string & id, const std::string & type)
+  std::string tag_element(const ElementId & elemId, const std::string & type)
   {
+    std::string id = id2unity(elemId);
     auto it = seen_.find(id);
     if(it == seen_.end())
     {
       seen_[id] = {type, true};
-      return;
+      return id;
     }
     auto & tag = it->second;
     tag.seen = true;
     if(tag.type == type)
     {
-      return;
+      return id;
     }
     if(on_remove_element_callback)
     {
       on_remove_element_callback(id.c_str(), tag.type.c_str());
     }
     tag.type = type;
+    return id;
   }
 
   void transform(const ElementId & /*id*/, const ElementId & requestId, bool ro, const sva::PTransformd & pt) override
@@ -168,18 +170,9 @@ struct UnityClient : public mc_control::ControllerClient
     {
       return;
     }
-    std::string tid = id2unity(requestId);
-    tag_element(tid, "transform");
+    auto tid = tag_element(requestId, "transform");
     on_transform_callback(tid.c_str(), ro, McRtc::ToUnity(pt));
-    auto it = transform_requests_.find(tid);
-    if(it != transform_requests_.end())
-    {
-      if(!ro)
-      {
-        send_request(requestId, it->second);
-      }
-      transform_requests_.erase(it);
-    }
+    handle_request(tid, requestId, transform_requests_, ro);
   }
 
   void trajectory(const ElementId & id,
@@ -190,8 +183,7 @@ struct UnityClient : public mc_control::ControllerClient
     {
       return;
     }
-    std::string tid = id2unity(id);
-    tag_element(tid, "trajectory");
+    auto tid = tag_element(id, "trajectory");
     float_buffer.resize(3 * points.size());
     size_t i = 0;
     for(const auto & p : points)
@@ -215,8 +207,7 @@ struct UnityClient : public mc_control::ControllerClient
     {
       return;
     }
-    std::string rid = id2unity(id);
-    tag_element(rid, "robot");
+    auto rid = tag_element(id, "robot");
     if(!robots.count(rid) || modules[rid]->parameters() != parameters)
     {
       modules[rid] = fromParams(parameters);
@@ -296,6 +287,9 @@ struct UnityClient : public mc_control::ControllerClient
 
   using mc_control::ControllerClient::run;
 
+  std::map<std::string, sva::PTransformd> transform_requests_;
+
+private:
   std::map<std::string, mc_rbdyn::RobotModulePtr> modules;
   std::map<std::string, std::shared_ptr<mc_rbdyn::Robots>> robots;
   struct ElementSeen
@@ -307,7 +301,23 @@ struct UnityClient : public mc_control::ControllerClient
   bool received_data = false;
   bool received_data_once = false;
   std::vector<float> float_buffer;
-  std::map<std::string, sva::PTransformd> transform_requests_;
+
+  template<typename T>
+  void handle_request(const std::string & unityId,
+                      const ElementId & requestId,
+                      std::map<std::string, T> & requests,
+                      bool ro = false)
+  {
+    auto it = requests.find(unityId);
+    if(it != requests.end())
+    {
+      if(!ro)
+      {
+        send_request(requestId, it->second);
+      }
+      requests.erase(it);
+    }
+  }
 };
 
 static std::unique_ptr<UnityClient> client;
