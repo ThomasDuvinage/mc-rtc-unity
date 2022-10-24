@@ -47,3 +47,10 @@ DEFINE_CALLBACK("Allows mc_rtc to print messages in Unity",
                 DebugLogCallback,
                 void (*)(const char * message),
                 "message");
+
+DEFINE_CALLBACK("Called when a checkbox is available",
+                on_checkbox_callback,
+                OnCheckbox,
+                void (*)(const char * id, bool state),
+                "id",
+                "state")

@@ -75,6 +75,11 @@ namespace McRtc
             DoOn<TransformElement>(tid, t => t.UpdateTransform(ro, pt));
         }
 
+        static void OnChecbox(string cbid, bool state)
+        {
+          DoOn<Checkbox>(cbid, cb => cb.UpdateState(state));
+        }
+
         static void OnRemoveElement(string id, string type)
         {
             switch (type)
@@ -87,6 +92,9 @@ namespace McRtc
                     break;
                 case "transform":
                     DoOn<TransformElement>(id, t => t.DeleteTransform());
+                    break;
+                case "checkbox":
+                    DoOn<Checkbox>(id, cb => cb.Disconnect());
                     break;
             }
         }
@@ -122,6 +130,7 @@ namespace McRtc
             elements[typeof(Robot)] = Object.FindObjectsOfType<Robot>();
             elements[typeof(Trajectory)] = Object.FindObjectsOfType<Trajectory>();
             elements[typeof(TransformElement)] = Object.FindObjectsOfType<TransformElement>();
+            elements[typeof(Checkbox)] = Object.FindObjectsOfType<Checkbox>();
             active_instance = this;
             DebugLogCallback(Debug.Log);
             OnRobot(Client.OnRobot);
@@ -129,6 +138,7 @@ namespace McRtc
             OnRobotMesh(Client.OnRobotMesh);
             OnTrajectoryVector3d(Client.OnTrajectoryVector3d);
             OnTransform(Client.OnTransform);
+            OnCheckbox(Client.OnCheckbox);
             OnRemoveElement(Client.OnRemoveElement);
         }
 

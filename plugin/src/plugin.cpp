@@ -164,6 +164,17 @@ struct UnityClient : public mc_control::ControllerClient
     return id;
   }
 
+  void checkbox(const ElementId & id, bool value) override
+  {
+    if(!on_checkbox_callback)
+    {
+      return;
+    }
+    auto cbid = tag_element(id, "checkbox");
+    on_checkbox_callback(cbid.c_str(), value);
+    handle_request(cbid, id, checkbox_requests_);
+  }
+
   void transform(const ElementId & /*id*/, const ElementId & requestId, bool ro, const sva::PTransformd & pt) override
   {
     if(!on_transform_callback)
@@ -288,6 +299,7 @@ struct UnityClient : public mc_control::ControllerClient
   using mc_control::ControllerClient::run;
 
   std::map<std::string, sva::PTransformd> transform_requests_;
+  std::map<std::string, bool> checkbox_requests_;
 
 private:
   std::map<std::string, mc_rbdyn::RobotModulePtr> modules;
