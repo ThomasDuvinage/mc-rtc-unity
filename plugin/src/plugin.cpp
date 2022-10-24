@@ -174,7 +174,10 @@ struct UnityClient : public mc_control::ControllerClient
     auto it = transform_requests_.find(tid);
     if(it != transform_requests_.end())
     {
-      send_request(requestId, it->second);
+      if(!ro)
+      {
+        send_request(requestId, it->second);
+      }
       transform_requests_.erase(it);
     }
   }
