@@ -78,15 +78,25 @@ namespace McRtc
   {
 )";
 
-#define DEFINE_CALLBACK(VAR, FUNCTION, TYPE, ...)                                                      \
+#define DEFINE_CALLBACK(DESC, VAR, FUNCTION, TYPE, ...)                                                \
   {                                                                                                    \
     std::vector<std::string> args = {__VA_ARGS__};                                                     \
+    os << "    // " << DESC << "\n";                                                                   \
     os << "    " << PointerToDelegate<TYPE>{}(#FUNCTION, args) << "\n";                                \
     os << "    [DllImport(\"McRtcPlugin\", CallingConvention = CallingConvention.Cdecl)]\n";           \
     os << "    protected static extern void " << #FUNCTION << "(" << #FUNCTION << "Callback cb);\n\n"; \
   }
 
 #include "callbacks.h"
+
+#define DEFINE_REQUEST(DESC, NAME, ARGT, REQMAP, ARGOP)                                                     \
+  {                                                                                                         \
+    os << "    // " << DESC << "\n";                                                                        \
+    os << "    [DllImport(\"McRtcPlugin\", CallingConvention = CallingConvention.Cdecl)]\n";                \
+    os << "    public static extern void " << #NAME << "(string id, " << TypeToStr<ARGT>() << " req);\n\n"; \
+  }
+
+#include "requests.h"
 
   os << "  }\n}\n";
 }

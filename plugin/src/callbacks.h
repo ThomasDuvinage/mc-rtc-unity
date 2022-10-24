@@ -1,11 +1,13 @@
-DEFINE_CALLBACK(on_robot_callback, OnRobot, void (*)(const char * id), "id")
-DEFINE_CALLBACK(on_robot_body_callback,
+DEFINE_CALLBACK("Called when a robot appears in the scene", on_robot_callback, OnRobot, void (*)(const char * id), "id")
+DEFINE_CALLBACK("Called to update a robot's body position",
+                on_robot_body_callback,
                 OnRobotBody,
                 void (*)(const char * id, const char * body, McRtc::PTransform X_0_body),
                 "id",
                 "body",
                 "X_0_body")
-DEFINE_CALLBACK(on_robot_mesh_callback,
+DEFINE_CALLBACK("Called to update a robot's body's mesh position",
+                on_robot_mesh_callback,
                 OnRobotMesh,
                 void (*)(const char * id,
                          const char * body,
@@ -19,18 +21,29 @@ DEFINE_CALLBACK(on_robot_mesh_callback,
                 "path",
                 "scale",
                 "X_body_visual")
-DEFINE_CALLBACK(on_trajectory_vector3d_callback,
+DEFINE_CALLBACK("Called when a trajectory made of 3D points is sent",
+                on_trajectory_vector3d_callback,
                 OnTrajectoryVector3d,
                 void (*)(const char * id, float * data, size_t npoints),
                 "id",
                 "data",
                 "npoints")
-DEFINE_CALLBACK(on_transform_callback,
+DEFINE_CALLBACK("Called when a transform is available",
+                on_transform_callback,
                 OnTransform,
                 void (*)(const char * id, bool ro, McRtc::PTransform pt),
                 "id",
                 "ro",
                 "pt")
-DEFINE_CALLBACK(on_remove_element_callback, OnRemoveElement, void (*)(const char * id, const char * type), "id", "type")
+DEFINE_CALLBACK("Called when any element is removed",
+                on_remove_element_callback,
+                OnRemoveElement,
+                void (*)(const char * id, const char * type),
+                "id",
+                "type")
 
-DEFINE_CALLBACK(debug_log_callback, DebugLogCallback, void (*)(const char * message), "message");
+DEFINE_CALLBACK("Allows mc_rtc to print messages in Unity",
+                debug_log_callback,
+                DebugLogCallback,
+                void (*)(const char * message),
+                "message");

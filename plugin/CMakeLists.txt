@@ -33,9 +33,9 @@ set(PUBLIC_ATTRIBUTE "public")
 set(SEQUENTIAL_STRUCT "[StructLayout(LayoutKind.Sequential)]")
 configure_file(src/types.in.h "${UNITY_PROJECT_DIR}/Assets/McRtc/Types.cs")
 
-add_library(${PROJECT_NAME} SHARED src/plugin.cpp "${PROJECT_BINARY_DIR}/include/types.h")
-target_sources(${PROJECT_NAME} PRIVATE src/types.in.h src/callbacks.h)
-set_source_files_properties(src/types.in.h src/callbacks.h PROPERTIES HEADER_FILE_ONLY TRUE)
+add_library(${PROJECT_NAME} SHARED src/plugin.cpp "${PROJECT_BINARY_DIR}/include/types.h" src/callbacks.h src/requests.h)
+target_sources(${PROJECT_NAME} PRIVATE src/types.in.h)
+set_source_files_properties(src/types.in.h PROPERTIES HEADER_FILE_ONLY TRUE)
 set_target_properties(${PROJECT_NAME} PROPERTIES
   ARCHIVE_OUTPUT_DIRECTORY "${UNITY_PROJECT_DIR}/Assets/Plugins"
   LIBRARY_OUTPUT_DIRECTORY "${UNITY_PROJECT_DIR}/Assets/Plugins"

@@ -21,16 +21,16 @@ namespace bfs = boost::filesystem;
 #  define PLUGIN_EXPORT
 #endif
 
-#define DEFINE_CALLBACK(VAR, FUNCTION, TYPE, ...)    \
-  using VAR##_t = TYPE;                              \
-  VAR##_t VAR = nullptr;                             \
-  extern "C"                                         \
-  {                                                  \
-    PLUGIN_EXPORT void FUNCTION(VAR##_t cb)          \
-    {                                                \
-      std::vector<std::string> args = {__VA_ARGS__}; \
-      VAR = cb;                                      \
-    }                                                \
+#define DEFINE_CALLBACK(DESC, VAR, FUNCTION, TYPE, ...) \
+  using VAR##_t = TYPE;                                 \
+  VAR##_t VAR = nullptr;                                \
+  extern "C"                                            \
+  {                                                     \
+    PLUGIN_EXPORT void FUNCTION(VAR##_t cb)             \
+    {                                                   \
+      std::vector<std::string> args = {__VA_ARGS__};    \
+      VAR = cb;                                         \
+    }                                                   \
   }
 
 #include "callbacks.h"
@@ -346,18 +346,24 @@ extern "C"
     }
   }
 
-  PLUGIN_EXPORT void SendTransformRequest(const char * id, McRtc::PTransform pt)
-  {
-    if(!client)
-    {
-      return;
-    }
-    client->transform_requests_[id] = McRtc::FromUnity(pt);
-  }
-
   PLUGIN_EXPORT void StopClient()
   {
     std::unique_lock<std::mutex> lock(client_mutex);
     client.reset(nullptr);
   }
 }
+
+#define DEFINE_REQUEST(DESC, NAME, ARGT, REQMAP, ARGOP)  \
+  extern "C"                                             \
+  {                                                      \
+    PLUGIN_EXPORT void NAME(const char * id, ARGT value) \
+    {                                                    \
+      if(!client)                                        \
+      {                                                  \
+        return;                                          \
+      }                                                  \
+      client->REQMAP[id] = ARGOP(value);                 \
+    }                                                    \
+  }
+
+#include "requests.h"

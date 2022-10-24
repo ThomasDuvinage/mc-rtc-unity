@@ -24,10 +24,6 @@ namespace McRtc
         [DllImport("McRtcPlugin", CallingConvention = CallingConvention.Cdecl)]
         private static extern void StopClient();
 
-        // This can be called to send a Transform request to the server
-        [DllImport("McRtcPlugin", CallingConvention = CallingConvention.Cdecl)]
-        public static extern void SendTransformRequest(string id, PTransform pt);
-
         static private void DoOn<T>(string id, System.Action<T> action) where T : Element
         {
             if(active_instance == null)
