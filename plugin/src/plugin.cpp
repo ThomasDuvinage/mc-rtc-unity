@@ -301,6 +301,9 @@ struct UnityClient : public mc_control::ControllerClient
   std::map<std::string, sva::PTransformd> transform_requests_;
   std::map<std::string, bool> checkbox_requests_;
 
+  bool received_data = false;
+  bool received_data_once = false;
+
 private:
   std::map<std::string, mc_rbdyn::RobotModulePtr> modules;
   std::map<std::string, std::shared_ptr<mc_rbdyn::Robots>> robots;
@@ -310,8 +313,6 @@ private:
     bool seen;
   };
   std::map<std::string, ElementSeen> seen_;
-  bool received_data = false;
-  bool received_data_once = false;
   std::vector<float> float_buffer;
 
   template<typename T>
