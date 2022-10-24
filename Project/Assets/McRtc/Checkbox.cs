@@ -13,11 +13,11 @@ namespace McRtc
         get { return state; }
         set
         {
-          state = value;
-          if(!update_from_server)
+          if(!update_from_server && value != state)
           {
-            client.SendCheckboxRequest(id, value);
+            client.SendCheckboxRequest(id);
           }
+          state = value;
         }
       }
       private bool update_from_server = false;

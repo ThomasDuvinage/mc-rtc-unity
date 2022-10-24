@@ -4,4 +4,4 @@ DEFINE_REQUEST("Sends a transform to mc_rtc server, the provided transform is co
                transform_requests_,
                McRtc::FromUnity)
 
-DEFINE_REQUEST("Change a checkbox state", SendCheckboxRequest, bool, checkbox_requests_, )
+DEFINE_VOID_REQUEST("Change a checkbox state", SendCheckboxRequest, checkbox_requests_)

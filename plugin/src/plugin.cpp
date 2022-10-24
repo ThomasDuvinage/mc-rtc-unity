@@ -388,4 +388,17 @@ extern "C"
     }                                                    \
   }
 
+#define DEFINE_VOID_REQUEST(DESC, NAME, REQMAP) \
+  extern "C"                                    \
+  {                                             \
+    PLUGIN_EXPORT void NAME(const char * id)    \
+    {                                           \
+      if(!client)                               \
+      {                                         \
+        return;                                 \
+      }                                         \
+      client->REQMAP[id] = true;                \
+    }                                           \
+  }
+
 #include "requests.h"

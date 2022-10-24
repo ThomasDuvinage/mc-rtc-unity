@@ -96,6 +96,13 @@ namespace McRtc
     os << "    public static extern void " << #NAME << "(string id, " << TypeToStr<ARGT>() << " req);\n\n"; \
   }
 
+#define DEFINE_VOID_REQUEST(DESC, NAME, REQMAP)                                              \
+  {                                                                                          \
+    os << "    // " << DESC << "\n";                                                         \
+    os << "    [DllImport(\"McRtcPlugin\", CallingConvention = CallingConvention.Cdecl)]\n"; \
+    os << "    public static extern void " << #NAME << "(string id);\n\n";                   \
+  }
+
 #include "requests.h"
 
   os << "  }\n}\n";
