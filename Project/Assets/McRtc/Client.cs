@@ -75,7 +75,7 @@ namespace McRtc
             DoOn<TransformElement>(tid, t => t.UpdateTransform(ro, pt));
         }
 
-        static void OnChecbox(string cbid, bool state)
+        static void OnCheckbox(string cbid, bool state)
         {
           DoOn<Checkbox>(cbid, cb => cb.UpdateState(state));
         }

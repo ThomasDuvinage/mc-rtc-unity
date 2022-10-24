@@ -7,33 +7,27 @@ namespace McRtc
     [ExecuteAlways]
     public class Checkbox : Element
     {
-      public string id;
-      public bool state
-      {
-        get { return state; }
-        set
+        public bool state
         {
-          if(!update_from_server && value != state)
-          {
-            client.SendCheckboxRequest(id);
-          }
-          state = value;
+            get { return m_state; }
+            set
+            {
+                if (value != m_state)
+                {
+                    Client.SendCheckboxRequest(id);
+                }
+                m_state = value;
+            }
         }
-      }
-      private bool update_from_server = false;
+        private bool m_state = false;
 
-      public void UpdateState(bool state)
-      {
-        if(state != this.state)
+        public void UpdateState(bool state)
         {
-          update_from_server = true;
-          this.state = state;
-          update_from_server = false;
+            m_state = state;
         }
-      }
 
-      public void Disconnect()
-      {
-      }
-  }
+        public void Disconnect()
+        {
+        }
+    }
 }
