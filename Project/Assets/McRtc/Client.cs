@@ -10,7 +10,7 @@ using System.Runtime.InteropServices;
 namespace McRtc
 {
     [ExecuteAlways]
-    public class Client : MonoBehaviour
+    public class Client : ClientBase
     {
         public string host = "localhost";
         private Dictionary<System.Type, Element[]> elements = new Dictionary<System.Type, Element[]>();
@@ -23,41 +23,6 @@ namespace McRtc
         private static extern void UpdateClient();
         [DllImport("McRtcPlugin", CallingConvention = CallingConvention.Cdecl)]
         private static extern void StopClient();
-
-        // Used to send message from the plugin to Unity console
-        private delegate void DebugLogCallbackT(string id);
-        [DllImport("McRtcPlugin", CallingConvention = CallingConvention.Cdecl)]
-        private static extern void DebugLogCallback(DebugLogCallbackT cb);
-
-        // This will be called when a new robot is seen by the GUI
-        private delegate void OnRobotCallback(string id);
-        [DllImport("McRtcPlugin", CallingConvention = CallingConvention.Cdecl)]
-        private static extern void OnRobot(OnRobotCallback cb);
-
-        // This will be called to place a robot's body in the scene
-        private delegate void OnRobotBodyCallback(string id, string body, PTransform X_0_body);
-        [DllImport("McRtcPlugin", CallingConvention = CallingConvention.Cdecl)]
-        private static extern void OnRobotBody(OnRobotBodyCallback cb);
-
-        // This will be called to place a robot's body's mesh in the scene
-        private delegate void OnRobotMeshCallback(string id, string body, string name, string path, float scale, PTransform X_body_visual);
-        [DllImport("McRtcPlugin", CallingConvention = CallingConvention.Cdecl)]
-        private static extern void OnRobotMesh(OnRobotMeshCallback cb);
-
-        // This will be called when a robot is removed from the scene
-        private delegate void OnRemoveElementCallback(string id, string type);
-        [DllImport("McRtcPlugin", CallingConvention = CallingConvention.Cdecl)]
-        private static extern void OnRemoveElement(OnRemoveElementCallback cb);
-
-        // This will be called when a trajectory should be visible in the scene
-        private delegate void OnTrajectoryVector3dCallback(string id, IntPtr data, nuint size);
-        [DllImport("McRtcPlugin", CallingConvention = CallingConvention.Cdecl)]
-        private static extern void OnTrajectoryVector3d(OnTrajectoryVector3dCallback cb);
-
-        // This will be called when a transform should be visible in the scene
-        private delegate void OnTransformCallback(string id, bool ro, PTransform pt);
-        [DllImport("McRtcPlugin", CallingConvention = CallingConvention.Cdecl)]
-        private static extern void OnTransform(OnTransformCallback cb);
 
         // This can be called to send a Transform request to the server
         [DllImport("McRtcPlugin", CallingConvention = CallingConvention.Cdecl)]
@@ -87,11 +52,6 @@ namespace McRtc
             {
                 active_instance = this;
             }
-        }
-
-        static void DebugLog(string msg)
-        {
-            Debug.Log(msg);
         }
 
         static void OnRobot(string id)
@@ -167,7 +127,7 @@ namespace McRtc
             elements[typeof(Trajectory)] = Object.FindObjectsOfType<Trajectory>();
             elements[typeof(TransformElement)] = Object.FindObjectsOfType<TransformElement>();
             active_instance = this;
-            DebugLogCallback(Client.DebugLog);
+            DebugLogCallback(Debug.Log);
             OnRobot(Client.OnRobot);
             OnRobotBody(Client.OnRobotBody);
             OnRobotMesh(Client.OnRobotMesh);

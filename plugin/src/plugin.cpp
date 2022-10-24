@@ -21,36 +21,20 @@ namespace bfs = boost::filesystem;
 #  define PLUGIN_EXPORT
 #endif
 
-#define DEFINE_CALLBACK(VAR, FUNCTION, TYPE) \
+#define DEFINE_CALLBACK(VAR, FUNCTION, TYPE, ...) \
 using VAR##_t = TYPE;\
 VAR##_t VAR = nullptr; \
 extern "C"\
 {\
   PLUGIN_EXPORT void FUNCTION(VAR##_t cb)\
   {\
+    std::vector<std::string> args = {__VA_ARGS__};\
     VAR = cb;\
   }\
 }
 
-DEFINE_CALLBACK(on_robot_callback, OnRobot, void (*)(const char * id))
-DEFINE_CALLBACK(on_robot_body_callback,
-                OnRobotBody,
-                void (*)(const char * id, const char * body, McRtc::PTransform X_0_body))
-DEFINE_CALLBACK(on_robot_mesh_callback,
-                OnRobotMesh,
-                void (*)(const char * id,
-                         const char * body,
-                         const char * name,
-                         const char * path,
-                         float scale,
-                         McRtc::PTransform X_body_visual))
-DEFINE_CALLBACK(on_trajectory_vector3d_callback,
-                OnTrajectoryVector3d,
-                void (*)(const char * id, float * data, size_t npoints))
-DEFINE_CALLBACK(on_transform_callback, OnTransform, void (*)(const char * id, bool ro, McRtc::PTransform pt))
-DEFINE_CALLBACK(on_remove_element_callback, OnRemoveElement, void (*)(const char * id, const char * type))
+#include "callbacks.h"
 
-DEFINE_CALLBACK(debug_log_callback, DebugLogCallback, void (*)(const char * message));
 static void DebugLog(const std::string & msg)
 {
   if(debug_log_callback)
