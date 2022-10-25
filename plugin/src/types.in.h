@@ -11,6 +11,78 @@ namespace McRtc
 {
 
 @SEQUENTIAL_STRUCT@
+@PUBLIC_ATTRIBUTE@ struct FloatArray
+{
+    @PUBLIC_ATTRIBUTE@ @FLOAT_ARRAY_POINTER@ data;
+    @PUBLIC_ATTRIBUTE@ @SIZE_T@ ndata;
+
+#if MC_RTC_CSHARP
+    public FloatArray(float[] floats)
+    {
+        ndata = (nuint)floats.Length;
+        data = Marshal.AllocHGlobal(floats.Length * sizeof(float));
+        Marshal.Copy(floats, 0, data, floats.Length);
+    }
+
+    public float[] ToArray()
+    {
+        float[] floats = new float[ndata];
+        Marshal.Copy(data, floats, 0, (int)ndata);
+        return floats;
+    }
+#endif
+}@END_STRUCT@
+
+#if MC_RTC_CPP
+FloatArray ToUnity(const Eigen::VectorXd & v, std::vector<float> & buffer)
+{
+    buffer.resize(v.size());
+    for(size_t i = 0; i < buffer.size(); ++i)
+    {
+        buffer[i] = static_cast<float>(v(static_cast<Eigen::DenseIndex>(i)));
+    }
+    return {buffer.data(), buffer.size()};
+}
+
+Eigen::VectorXd FromUnity(FloatArray fa)
+{
+    return Eigen::Map<Eigen::VectorXf>(fa.data, fa.ndata).cast<double>();
+}
+#endif
+
+@SEQUENTIAL_STRUCT@
+@PUBLIC_ATTRIBUTE@ struct StringArray
+{
+    @PUBLIC_ATTRIBUTE@ @STRING_ARRAY_POINTER@ data;
+    @PUBLIC_ATTRIBUTE@ @SIZE_T@ ndata;
+#if MC_RTC_CSHARP
+    public string[] ToArray()
+    {
+        IntPtr[] ptrs = new IntPtr[ndata];
+        Marshal.Copy(data, ptrs, 0, (int)ndata);
+        string[] strings = new string[ndata];
+        for(int i = 0; i < strings.Length; i++)
+        {
+            strings[i] = Marshal.PtrToStringAnsi(ptrs[i]);
+        }
+        return strings;
+    }
+#endif
+}@END_STRUCT@
+
+#if MC_RTC_CPP
+StringArray ToUnity(const std::vector<std::string>& v, std::vector<const char*>& buffer)
+{
+    buffer.resize(v.size());
+    for (size_t i = 0; i < v.size(); ++i)
+    {
+        buffer[i] = v[i].c_str();
+    }
+    return {buffer.data(), buffer.size()};
+}
+#endif
+
+@SEQUENTIAL_STRUCT@
 @PUBLIC_ATTRIBUTE@ struct Vec3
   {
     @PUBLIC_ATTRIBUTE@ float x;

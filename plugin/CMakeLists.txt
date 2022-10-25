@@ -22,15 +22,22 @@ set(PREPROCESSOR "#pragma once
 set(END_STRUCT ";")
 set(PUBLIC_ATTRIBUTE "")
 set(SEQUENTIAL_STRUCT "")
+set(FLOAT_ARRAY_POINTER "float *")
+set(STRING_ARRAY_POINTER "const char **")
+set(SIZE_T "size_t")
 configure_file(src/types.in.h "${PROJECT_BINARY_DIR}/include/types.h")
 
 # C# header generation
 set(PREPROCESSOR "#define MC_RTC_CSHARP
 using UnityEngine;
-using System.Runtime.InteropServices;")
+using System.Runtime.InteropServices;
+using IntPtr = System.IntPtr;")
 set(END_STRUCT "")
 set(PUBLIC_ATTRIBUTE "public")
 set(SEQUENTIAL_STRUCT "[StructLayout(LayoutKind.Sequential)]")
+set(FLOAT_ARRAY_POINTER "IntPtr")
+set(STRING_ARRAY_POINTER "IntPtr")
+set(SIZE_T "nuint")
 configure_file(src/types.in.h "${UNITY_PROJECT_DIR}/Assets/McRtc/Types.cs")
 
 add_library(${PROJECT_NAME} SHARED src/plugin.cpp "${PROJECT_BINARY_DIR}/include/types.h" src/callbacks.h src/requests.h)

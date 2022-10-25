@@ -54,3 +54,11 @@ DEFINE_CALLBACK("Called when a checkbox is available",
                 void (*)(const char * id, bool state),
                 "id",
                 "state")
+
+DEFINE_CALLBACK("Called when an array input is available",
+                on_array_input_callback,
+                OnArrayInput,
+                void (*)(const char * id, McRtc::StringArray labels, McRtc::FloatArray data),
+                "id",
+                "labels",
+                "data")

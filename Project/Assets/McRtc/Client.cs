@@ -24,6 +24,13 @@ namespace McRtc
         [DllImport("McRtcPlugin", CallingConvention = CallingConvention.Cdecl)]
         private static extern void StopClient();
 
+        static public void SendArrayInputRequest(string id, float[] floats)
+        {
+            FloatArray array = new FloatArray(floats);
+            SendArrayInputRequest(id, array);
+            Marshal.FreeHGlobal(array.data);
+        }
+
         static private void DoOn<T>(string id, System.Action<T> action) where T : Element
         {
             if(active_instance == null)
@@ -80,6 +87,11 @@ namespace McRtc
           DoOn<Checkbox>(cbid, cb => cb.UpdateState(state));
         }
 
+        static void OnArrayInput(string aiid, StringArray labels, FloatArray data)
+        {
+            DoOn<ArrayInput>(aiid, ai => ai.UpdateArray(labels.ToArray(), data.ToArray()));
+        }
+
         static void OnRemoveElement(string id, string type)
         {
             switch (type)
@@ -95,6 +107,9 @@ namespace McRtc
                     break;
                 case "checkbox":
                     DoOn<Checkbox>(id, cb => cb.Disconnect());
+                    break;
+                case "array_input":
+                    DoOn<ArrayInput>(id, ai => ai.Disconnect());
                     break;
             }
         }
@@ -131,6 +146,7 @@ namespace McRtc
             elements[typeof(Trajectory)] = Object.FindObjectsOfType<Trajectory>();
             elements[typeof(TransformElement)] = Object.FindObjectsOfType<TransformElement>();
             elements[typeof(Checkbox)] = Object.FindObjectsOfType<Checkbox>();
+            elements[typeof(ArrayInput)] = Object.FindObjectsOfType<ArrayInput>();
             active_instance = this;
             DebugLogCallback(Debug.Log);
             OnRobot(Client.OnRobot);
@@ -139,6 +155,7 @@ namespace McRtc
             OnTrajectoryVector3d(Client.OnTrajectoryVector3d);
             OnTransform(Client.OnTransform);
             OnCheckbox(Client.OnCheckbox);
+            OnArrayInput(Client.OnArrayInput);
             OnRemoveElement(Client.OnRemoveElement);
         }
 

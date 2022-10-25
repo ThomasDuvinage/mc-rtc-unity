@@ -27,6 +27,8 @@ T_TO_STR(float)
 TYPE_TO_STR(const char *, "string")
 TYPE_TO_STR(float *, "IntPtr")
 TYPE_TO_STR(McRtc::PTransform, "PTransform")
+TYPE_TO_STR(McRtc::FloatArray, "FloatArray")
+TYPE_TO_STR(McRtc::StringArray, "StringArray")
 TYPE_TO_STR(size_t, "nuint")
 
 template<typename T>
@@ -89,18 +91,19 @@ namespace McRtc
 
 #include "callbacks.h"
 
-#define DEFINE_REQUEST(DESC, NAME, ARGT, REQMAP, ARGOP)                                                     \
+#define DEFINE_REQUEST(DESC, NAME, ARGT, REQMAP, CLIENT_SCOPE)                                              \
   {                                                                                                         \
     os << "    // " << DESC << "\n";                                                                        \
     os << "    [DllImport(\"McRtcPlugin\", CallingConvention = CallingConvention.Cdecl)]\n";                \
-    os << "    public static extern void " << #NAME << "(string id, " << TypeToStr<ARGT>() << " req);\n\n"; \
+    os << "    " << #CLIENT_SCOPE << " static extern void " << #NAME << "(string id, " << TypeToStr<ARGT>() \
+       << " req);\n\n";                                                                                     \
   }
 
-#define DEFINE_VOID_REQUEST(DESC, NAME, REQMAP)                                              \
+#define DEFINE_VOID_REQUEST(DESC, NAME, REQMAP, CLIENT_SCOPE)                                \
   {                                                                                          \
     os << "    // " << DESC << "\n";                                                         \
     os << "    [DllImport(\"McRtcPlugin\", CallingConvention = CallingConvention.Cdecl)]\n"; \
-    os << "    public static extern void " << #NAME << "(string id);\n\n";                   \
+    os << "    " << #CLIENT_SCOPE << " static extern void " << #NAME << "(string id);\n\n";  \
   }
 
 #include "requests.h"

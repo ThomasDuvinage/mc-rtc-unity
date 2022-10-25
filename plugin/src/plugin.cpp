@@ -175,6 +175,18 @@ struct UnityClient : public mc_control::ControllerClient
     handle_request(cbid, id, checkbox_requests_);
   }
 
+  void array_input(const ElementId& id, const std::vector<std::string>& labels, const Eigen::VectorXd& data)
+  {
+    if(!on_array_input_callback)
+    {
+      return;
+    }
+    auto aid = tag_element(id, "array_input");
+    on_array_input_callback(aid.c_str(), McRtc::ToUnity(labels, string_array_buffer),
+                            McRtc::ToUnity(data, float_buffer));
+    handle_request(aid, id, array_input_requests_);
+  }
+
   void transform(const ElementId & /*id*/, const ElementId & requestId, bool ro, const sva::PTransformd & pt) override
   {
     if(!on_transform_callback)
@@ -300,6 +312,7 @@ struct UnityClient : public mc_control::ControllerClient
 
   std::map<std::string, sva::PTransformd> transform_requests_;
   std::map<std::string, bool> checkbox_requests_;
+  std::map<std::string, Eigen::VectorXd> array_input_requests_;
 
   bool received_data = false;
   bool received_data_once = false;
@@ -314,6 +327,7 @@ private:
   };
   std::map<std::string, ElementSeen> seen_;
   std::vector<float> float_buffer;
+  std::vector<const char *> string_array_buffer;
 
   template<typename T>
   void handle_request(const std::string & unityId,
@@ -376,30 +390,30 @@ extern "C"
   }
 }
 
-#define DEFINE_REQUEST(DESC, NAME, ARGT, REQMAP, ARGOP)  \
-  extern "C"                                             \
-  {                                                      \
-    PLUGIN_EXPORT void NAME(const char * id, ARGT value) \
-    {                                                    \
-      if(!client)                                        \
-      {                                                  \
-        return;                                          \
-      }                                                  \
-      client->REQMAP[id] = ARGOP(value);                 \
-    }                                                    \
+#define DEFINE_REQUEST(DESC, NAME, ARGT, REQMAP, CLIENT_SCOPE)  \
+  extern "C"                                                    \
+  {                                                             \
+    PLUGIN_EXPORT void NAME(const char * id, ARGT value)        \
+    {                                                           \
+      if(!client)                                               \
+      {                                                         \
+        return;                                                 \
+      }                                                         \
+      client->REQMAP[id] = McRtc::FromUnity(value);             \
+    }                                                           \
   }
 
-#define DEFINE_VOID_REQUEST(DESC, NAME, REQMAP) \
-  extern "C"                                    \
-  {                                             \
-    PLUGIN_EXPORT void NAME(const char * id)    \
-    {                                           \
-      if(!client)                               \
-      {                                         \
-        return;                                 \
-      }                                         \
-      client->REQMAP[id] = true;                \
-    }                                           \
+#define DEFINE_VOID_REQUEST(DESC, NAME, REQMAP, CLIENT_SCOPE) \
+  extern "C"                                                  \
+  {                                                           \
+    PLUGIN_EXPORT void NAME(const char * id)                  \
+    {                                                         \
+      if(!client)                                             \
+      {                                                       \
+        return;                                               \
+      }                                                       \
+      client->REQMAP[id] = true;                              \
+    }                                                         \
   }
 
 #include "requests.h"
