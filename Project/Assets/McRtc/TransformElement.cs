@@ -12,8 +12,9 @@ namespace McRtc
         public bool send_local_transform = false;
         public void UpdateTransform(bool ro, PTransform pt)
         {
-            if(write)
+            if(write && transform.hasChanged)
             {
+                transform.hasChanged = false;
                 PTransform tf;
                 if (send_local_transform)
                 {
@@ -25,9 +26,10 @@ namespace McRtc
                 }
                 Client.SendTransformRequest(id, tf);
             }
-            if (read)
+            else if (read)
             {
                 pt.SetLocalTransform(gameObject);
+                transform.hasChanged = false;
             }
         }
 
