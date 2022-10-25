@@ -28,12 +28,16 @@ namespace McRtc
         private string[] m_labels = new string[0];
         public void UpdateArray(string[] labels, float[] data)
         {
-            if(labels.Length == 0 && m_labels.Length != data.Length)
+            if(labels.Length < data.Length)
             {
-                labels = new string[data.Length];
-                for(int i = 0; i < labels.Length; ++i)
+                m_labels = new string[data.Length];
+                for (int i = 0; i < labels.Length; ++i)
                 {
-                    labels[i] = i.ToString();
+                    m_labels[i] = labels[i];
+                }
+                for (int i = labels.Length; i < data.Length; ++i)
+                {
+                    m_labels[i] = i.ToString();
                 }
             }
             else
