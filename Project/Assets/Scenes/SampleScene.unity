@@ -153,6 +153,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   id: Robots/hrp4cr
+  persist: 0
   alpha: 1
 --- !u!4 &120053913
 Transform:
@@ -658,6 +659,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   id: Robots/jvrc1
+  persist: 0
   alpha: 1
 --- !u!4 &1599636224
 Transform:
