@@ -33,7 +33,7 @@ namespace McRtc
             }
         }
 
-        public void DeleteTransform()
+        protected override void OnDisconnect()
         {
         }
     }

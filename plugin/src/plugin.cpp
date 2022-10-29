@@ -141,27 +141,29 @@ struct UnityClient : public mc_control::ControllerClient
 
   void category(const std::vector<std::string> & parent, const std::string & category) override {}
 
-  std::string tag_element(const ElementId & elemId, const std::string & type)
+  std::string tag_element(const ElementId & elemId, const std::string & type, const ElementId * requestId = nullptr)
   {
     std::string id = id2unity(elemId);
+    std::string rId = requestId ? id2unity(*requestId) : "";
+    const std::string & retId = rId.empty() ? id : rId;
     auto it = seen_.find(id);
     if(it == seen_.end())
     {
-      seen_[id] = {type, true};
-      return id;
+      seen_[id] = {type, rId, true};
+      return retId;
     }
     auto & tag = it->second;
     tag.seen = true;
     if(tag.type == type)
     {
-      return id;
+      return retId;
     }
     if(on_remove_element_callback)
     {
       on_remove_element_callback(id.c_str(), tag.type.c_str());
     }
     tag.type = type;
-    return id;
+    return retId;
   }
 
   void checkbox(const ElementId & id, bool value) override
@@ -187,13 +189,13 @@ struct UnityClient : public mc_control::ControllerClient
     handle_request(aid, id, array_input_requests_);
   }
 
-  void transform(const ElementId & /*id*/, const ElementId & requestId, bool ro, const sva::PTransformd & pt) override
+  void transform(const ElementId & id, const ElementId & requestId, bool ro, const sva::PTransformd & pt) override
   {
     if(!on_transform_callback)
     {
       return;
     }
-    auto tid = tag_element(requestId, "transform");
+    auto tid = tag_element(id, "transform", &requestId);
     on_transform_callback(tid.c_str(), ro, McRtc::ToUnity(pt));
     handle_request(tid, requestId, transform_requests_, ro);
   }
@@ -303,7 +305,14 @@ struct UnityClient : public mc_control::ControllerClient
     {
       if(!it.second.seen && on_remove_element_callback)
       {
-        on_remove_element_callback(it.first.c_str(), it.second.type.c_str());
+        if(it.second.requestId.empty())
+        {
+          on_remove_element_callback(it.first.c_str(), it.second.type.c_str());
+        }
+        else
+        {
+          on_remove_element_callback(it.second.requestId.c_str(), it.second.type.c_str());
+        }
       }
     }
   }
@@ -323,6 +332,7 @@ private:
   struct ElementSeen
   {
     std::string type;
+    std::string requestId;
     bool seen;
   };
   std::map<std::string, ElementSeen> seen_;

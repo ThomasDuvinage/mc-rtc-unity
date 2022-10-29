@@ -47,7 +47,7 @@ namespace McRtc
             m_data = data;
         }
 
-        public void Disconnect()
+        protected override void OnDisconnect()
         {
             m_labels = new string[0];
             m_data = new float[0];

@@ -59,7 +59,7 @@ namespace McRtc
 
         static void OnRobot(string id)
         {
-            DoOn<Robot>(id, r => r.UpdateRobot());
+            DoOn<Robot>(id, r => r.tick());
         }
 
         static void OnRobotBody(string rid, string body, PTransform X_0_body)
@@ -74,22 +74,22 @@ namespace McRtc
 
         static void OnTrajectoryVector3d(string tid, IntPtr data, nuint size)
         {
-            DoOn<Trajectory>(tid, t => t.UpdatePoints(data, size));
+            DoOn<Trajectory>(tid, t => { t.tick(); t.UpdatePoints(data, size); });
         }
 
         static void OnTransform(string tid, bool ro, PTransform pt)
         {
-            DoOn<TransformElement>(tid, t => t.UpdateTransform(ro, pt));
+            DoOn<TransformElement>(tid, t => { t.tick(); t.UpdateTransform(ro, pt); });
         }
 
         static void OnCheckbox(string cbid, bool state)
         {
-          DoOn<Checkbox>(cbid, cb => cb.UpdateState(state));
+          DoOn<Checkbox>(cbid, cb => { cb.tick(); cb.UpdateState(state); });
         }
 
         static void OnArrayInput(string aiid, StringArray labels, FloatArray data)
         {
-            DoOn<ArrayInput>(aiid, ai => ai.UpdateArray(labels.ToArray(), data.ToArray()));
+            DoOn<ArrayInput>(aiid, ai => { ai.tick(); ai.UpdateArray(labels.ToArray(), data.ToArray()); });
         }
 
         static void OnRemoveElement(string id, string type)
@@ -97,19 +97,19 @@ namespace McRtc
             switch (type)
             {
                 case "robot":
-                    DoOn<Robot>(id, r => r.DeleteRobot());
+                    DoOn<Robot>(id, r => r.disconnect());
                     break;
                 case "trajectory":
-                    DoOn<Trajectory>(id, t => t.DeleteTrajectory());
+                    DoOn<Trajectory>(id, t => t.disconnect());
                     break;
                 case "transform":
-                    DoOn<TransformElement>(id, t => t.DeleteTransform());
+                    DoOn<TransformElement>(id, t => t.disconnect());
                     break;
                 case "checkbox":
-                    DoOn<Checkbox>(id, cb => cb.Disconnect());
+                    DoOn<Checkbox>(id, cb => cb.disconnect());
                     break;
                 case "array_input":
-                    DoOn<ArrayInput>(id, ai => ai.Disconnect());
+                    DoOn<ArrayInput>(id, ai => ai.disconnect());
                     break;
             }
         }
@@ -136,19 +136,19 @@ namespace McRtc
             }
         }
 
+        static void DebugLog(string msg)
+        {
+            Debug.Log(msg);
+        }
+
         void SetupCallbacks()
         {
             if (active_instance != this)
             {
                 active_instance = this;
             }
-            elements[typeof(Robot)] = Object.FindObjectsOfType<Robot>();
-            elements[typeof(Trajectory)] = Object.FindObjectsOfType<Trajectory>();
-            elements[typeof(TransformElement)] = Object.FindObjectsOfType<TransformElement>();
-            elements[typeof(Checkbox)] = Object.FindObjectsOfType<Checkbox>();
-            elements[typeof(ArrayInput)] = Object.FindObjectsOfType<ArrayInput>();
             active_instance = this;
-            DebugLogCallback(Debug.Log);
+            DebugLogCallback(DebugLog);
             OnRobot(Client.OnRobot);
             OnRobotBody(Client.OnRobotBody);
             OnRobotMesh(Client.OnRobotMesh);
@@ -157,6 +157,16 @@ namespace McRtc
             OnCheckbox(Client.OnCheckbox);
             OnArrayInput(Client.OnArrayInput);
             OnRemoveElement(Client.OnRemoveElement);
+            FindObjects();
+        }
+
+        void FindObjects()
+        {
+            elements[typeof(Robot)] = Object.FindObjectsOfType<Robot>();
+            elements[typeof(Trajectory)] = Object.FindObjectsOfType<Trajectory>();
+            elements[typeof(TransformElement)] = Object.FindObjectsOfType<TransformElement>();
+            elements[typeof(Checkbox)] = Object.FindObjectsOfType<Checkbox>();
+            elements[typeof(ArrayInput)] = Object.FindObjectsOfType<ArrayInput>();
         }
 
         void Update()
@@ -166,10 +176,7 @@ namespace McRtc
                 reconnect = false;
                 CreateClient(host);
             }
-            if (!Application.IsPlaying(gameObject))
-            {
-                SetupCallbacks();
-            }
+            SetupCallbacks();
             UpdateClient();
         }
 

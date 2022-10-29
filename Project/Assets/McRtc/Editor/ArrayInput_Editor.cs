@@ -6,17 +6,13 @@ using UnityEngine.UIElements;
 namespace McRtc
 {
     [CustomEditor(typeof(ArrayInput))]
-    public class ArrayInput_Editor : Editor
+    public class ArrayInput_Editor : Element_Editor
     {
         private bool editing = false;
         private float[] data = null;
-        public override bool RequiresConstantRepaint()
-        {
-            return !editing;
-        }
         public override void OnInspectorGUI()
         {
-            DrawDefaultInspector();
+            base.OnInspectorGUI();
             if (editing)
             {
                 ArrayInput input = (ArrayInput)target;

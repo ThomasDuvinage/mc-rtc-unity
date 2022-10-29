@@ -6,11 +6,11 @@ using UnityEngine.UIElements;
 namespace McRtc
 {
     [CustomEditor(typeof(Checkbox))]
-    public class Checkbox_Editor : Editor
+    public class Checkbox_Editor : Element_Editor
     {
         public override void OnInspectorGUI()
         {
-            DrawDefaultInspector();
+            base.OnInspectorGUI();
             bool stateIn = ((Checkbox)target).state;
             if(stateIn != EditorGUILayout.Toggle("State", stateIn))
             {

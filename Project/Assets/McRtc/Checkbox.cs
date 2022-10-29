@@ -26,7 +26,7 @@ namespace McRtc
             m_state = state;
         }
 
-        public void Disconnect()
+        protected override void OnDisconnect()
         {
         }
     }

@@ -44,7 +44,7 @@ namespace McRtc
             }
         }
 
-        public void DeleteTrajectory()
+        protected override void OnDisconnect()
         {
             points = new Vector3[0];
             LineRenderer line = GetRenderer();

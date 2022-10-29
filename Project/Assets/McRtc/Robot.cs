@@ -12,7 +12,6 @@ namespace McRtc
     [ExecuteAlways]
     public class Robot : Element
     {
-        public bool persist = false;
         public float alpha = 1.0f;
 
         private GameObject AddEmptyMesh(GameObject body, string name)
@@ -77,15 +76,6 @@ namespace McRtc
             m.transform.parent = body.transform;
             m.AddComponent<Tag>().mcTag = "McRtcRobotMesh";
             return m;
-        }
-
-        // Start is called before the first frame update
-        void Start()
-        {
-        }
-
-        public void UpdateRobot()
-        {
         }
 
         private GameObject FindBody(string body)
@@ -170,12 +160,8 @@ namespace McRtc
             }
         }
 
-        public void DeleteRobot()
+        protected override void OnDisconnect()
         {
-            if(persist)
-            {
-                return;
-            }
             Tag[] tags = GetComponentsInChildren<Tag>();
             foreach(Tag tag in tags)
             {
