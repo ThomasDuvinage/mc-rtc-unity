@@ -27,6 +27,7 @@ extern "C"
 
 void OnRobotCb(const char * id)
 {
+  mc_rtc::log::info("Got Robot {}", id);
 }
 
 void OnRemoveElementCb(const char * id, const char * type)
@@ -40,7 +41,7 @@ void OnTransformCb(const char * id, bool ro, McRtc::PTransform pt)
 
 int main()
 {
-  CreateClient("localhost");
+  CreateClient("192.168.2.12");
   OnRobot(OnRobotCb);
   OnTransform(OnTransformCb);
   OnRemoveElement(OnRemoveElementCb);

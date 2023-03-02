@@ -12,10 +12,7 @@ namespace McRtc
             get { return m_state; }
             set
             {
-                if (value != m_state)
-                {
-                    Client.SendCheckboxRequest(id);
-                }
+                Client.SendCheckboxRequest(id, value);
                 m_state = value;
             }
         }

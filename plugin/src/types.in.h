@@ -224,6 +224,11 @@ sva::PTransformd FromUnity(const PTransform & pt)
   }();
   return sva::conversions::fromHomogeneous((from_unity * homo * from_unity).cast<double>());
 }
+
+bool FromUnity(bool b)
+{
+  return b;
+}
 #endif
 
 } // namespace McRtc

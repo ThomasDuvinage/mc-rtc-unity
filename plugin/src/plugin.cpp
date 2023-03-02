@@ -174,7 +174,17 @@ struct UnityClient : public mc_control::ControllerClient
     }
     auto cbid = tag_element(id, "checkbox");
     on_checkbox_callback(cbid.c_str(), value);
-    handle_request(cbid, id, checkbox_requests_);
+    //handle_request(cbid, id, checkbox_requests_);
+    auto it = checkbox_requests_.find(cbid);
+    if(it == checkbox_requests_.end())
+    {
+      return;
+    }
+    if(value != it->second)
+    {
+      send_request(id);
+    }
+    checkbox_requests_.erase(it);
   }
 
   void array_input(const ElementId& id, const std::vector<std::string>& labels, const Eigen::VectorXd& data)
