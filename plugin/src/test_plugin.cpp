@@ -41,7 +41,7 @@ void OnTransformCb(const char * id, bool ro, McRtc::PTransform pt)
 
 int main()
 {
-  CreateClient("192.168.2.12");
+  CreateClient("150.18.226.17");
   OnRobot(OnRobotCb);
   OnTransform(OnTransformCb);
   OnRemoveElement(OnRemoveElementCb);

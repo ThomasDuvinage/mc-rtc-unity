@@ -46,23 +46,30 @@ static void DebugLog(const std::string & msg)
 inline mc_rbdyn::RobotModulePtr fromParams(const std::vector<std::string> & p)
 {
   mc_rbdyn::RobotModulePtr rm{nullptr};
-  if(p.size() == 1)
+  try
   {
-    rm = mc_rbdyn::RobotLoader::get_robot_module(p[0]);
+    if(p.size() == 1)
+    {
+      rm = mc_rbdyn::RobotLoader::get_robot_module(p[0]);
+    }
+    if(p.size() == 2)
+    {
+      rm = mc_rbdyn::RobotLoader::get_robot_module(p[0], p[1]);
+    }
+    if(p.size() == 3)
+    {
+      rm = mc_rbdyn::RobotLoader::get_robot_module(p[0], p[1], p[2]);
+    }
+    if(p.size() > 3)
+    {
+      mc_rtc::log::warning("Too many parameters provided to load the robot, complain to the developpers of this package");
+    }
+    return rm;
   }
-  if(p.size() == 2)
+  catch(...)
   {
-    rm = mc_rbdyn::RobotLoader::get_robot_module(p[0], p[1]);
+    return nullptr;
   }
-  if(p.size() == 3)
-  {
-    rm = mc_rbdyn::RobotLoader::get_robot_module(p[0], p[1], p[2]);
-  }
-  if(p.size() > 3)
-  {
-    mc_rtc::log::warning("Too many parameters provided to load the robot, complain to the developpers of this package");
-  }
-  return rm;
 }
 
 inline bfs::path convertURI(const std::string & uri, [[maybe_unused]] std::string_view default_dir = "")
@@ -243,12 +250,26 @@ struct UnityClient : public mc_control::ControllerClient
       return;
     }
     auto rid = tag_element(id, "robot");
-    if(!robots.count(rid) || modules[rid]->parameters() != parameters)
+    if(!robots.count(rid) || modules_params[rid] != parameters)
     {
+      modules_params[rid] = parameters;
       modules[rid] = fromParams(parameters);
       if(modules[rid])
       {
         robots[rid] = mc_rbdyn::loadRobot(*modules[rid]);
+      }
+      else
+      {
+        std::string params_str = "[";
+        for(const auto & p : parameters)
+        {
+          params_str += " ";
+          params_str += p;
+          params_str += ",";
+        }
+        params_str.back() = ']';
+        DebugLog(fmt::format("Failed to load module {} for robot {}", params_str, rid));
+        robots[rid] = nullptr;
       }
     }
     auto robots_ptr = robots[rid];
@@ -337,6 +358,7 @@ struct UnityClient : public mc_control::ControllerClient
   bool received_data_once = false;
 
 private:
+  std::map<std::string, std::vector<std::string>> modules_params;
   std::map<std::string, mc_rbdyn::RobotModulePtr> modules;
   std::map<std::string, std::shared_ptr<mc_rbdyn::Robots>> robots;
   struct ElementSeen
