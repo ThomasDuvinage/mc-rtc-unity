@@ -278,8 +278,18 @@ struct UnityClient : public mc_control::ControllerClient
       return;
     }
     auto & robot = robots_ptr->robot();
-    robot.mbc().q = q;
-    robot.posW(posW);
+    const auto & rq = robot.mbc().q;
+    if(rq.size() == q.size())
+    {
+      robot.mbc().q = q;
+      robot.posW(posW);
+    }
+    else
+    {
+      auto msg = fmt::format("Incompatible configuration for {}, wrong size (expected: {}, got: {})", robot.name(), rq.size(), q.size());
+      mc_rtc::log::info(msg);
+      DebugLog(msg.c_str());
+    }
     on_robot_callback(rid.c_str());
     if(!on_robot_body_callback || !on_robot_mesh_callback)
     {
