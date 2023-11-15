@@ -229,6 +229,11 @@ bool FromUnity(bool b)
 {
   return b;
 }
+
+float FromUnity(float f)
+{
+  return f;
+}
 #endif
 
 } // namespace McRtc
