@@ -92,6 +92,11 @@ namespace McRtc
             DoOn<ArrayInput>(aiid, ai => { ai.tick(); ai.UpdateArray(labels.ToArray(), data.ToArray()); });
         }
 
+        static void OnNumberInput(string niid, float data)
+        {
+            DoOn<NumberInput>(niid, ni => { ni.tick(); ni.UpdateData(data); });
+        }
+
         static void OnRemoveElement(string id, string type)
         {
             switch (type)
@@ -110,6 +115,9 @@ namespace McRtc
                     break;
                 case "array_input":
                     DoOn<ArrayInput>(id, ai => ai.disconnect());
+                    break;
+                case "number_input":
+                    DoOn<NumberInput>(id, ni => ni.disconnect());
                     break;
             }
         }
@@ -155,6 +163,7 @@ namespace McRtc
             OnTrajectoryVector3d(Client.OnTrajectoryVector3d);
             OnTransform(Client.OnTransform);
             OnCheckbox(Client.OnCheckbox);
+            OnNumberInput(Client.OnNumberInput);
             OnArrayInput(Client.OnArrayInput);
             OnRemoveElement(Client.OnRemoveElement);
             FindObjects();
@@ -166,6 +175,7 @@ namespace McRtc
             elements[typeof(Trajectory)] = Object.FindObjectsOfType<Trajectory>();
             elements[typeof(TransformElement)] = Object.FindObjectsOfType<TransformElement>();
             elements[typeof(Checkbox)] = Object.FindObjectsOfType<Checkbox>();
+            elements[typeof(NumberInput)] = Object.FindObjectsOfType<NumberInput>();
             elements[typeof(ArrayInput)] = Object.FindObjectsOfType<ArrayInput>();
         }
 

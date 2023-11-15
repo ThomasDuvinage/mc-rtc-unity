@@ -194,7 +194,18 @@ struct UnityClient : public mc_control::ControllerClient
     checkbox_requests_.erase(it);
   }
 
-  void array_input(const ElementId& id, const std::vector<std::string>& labels, const Eigen::VectorXd& data)
+  void number_input(const ElementId & id, double data) override
+  {
+    if(!on_number_input_callback)
+    {
+      return;
+    }
+    auto nid = tag_element(id, "number_input");
+    on_number_input_callback(nid.c_str(), static_cast<float>(data));
+    handle_request(nid, id, number_input_requests_);
+  }
+
+  void array_input(const ElementId& id, const std::vector<std::string>& labels, const Eigen::VectorXd& data) override
   {
     if(!on_array_input_callback)
     {
@@ -362,6 +373,7 @@ struct UnityClient : public mc_control::ControllerClient
 
   std::map<std::string, sva::PTransformd> transform_requests_;
   std::map<std::string, bool> checkbox_requests_;
+  std::map<std::string, float> number_input_requests_;
   std::map<std::string, Eigen::VectorXd> array_input_requests_;
 
   bool received_data = false;

@@ -55,6 +55,13 @@ DEFINE_CALLBACK("Called when a checkbox is available",
                 "id",
                 "state")
 
+DEFINE_CALLBACK("Called when a number input is available",
+                on_number_input_callback,
+                OnNumberInput,
+                void (*)(const char * id, float data),
+                "id",
+                "data")
+
 DEFINE_CALLBACK("Called when an array input is available",
                 on_array_input_callback,
                 OnArrayInput,

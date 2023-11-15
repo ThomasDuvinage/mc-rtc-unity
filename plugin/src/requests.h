@@ -6,6 +6,8 @@ DEFINE_REQUEST("Sends a transform to mc_rtc server, the provided transform is co
 
 DEFINE_REQUEST("Change a checkbox state", SendCheckboxRequest, bool, checkbox_requests_, public)
 
+DEFINE_REQUEST("Change a number input", SendNumberInputRequest, float, number_input_requests_, public)
+
 DEFINE_REQUEST("Sends an array to mc_rtc server",
                SendArrayInputRequest,
                McRtc::FloatArray,
