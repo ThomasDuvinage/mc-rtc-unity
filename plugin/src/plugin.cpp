@@ -347,7 +347,7 @@ struct UnityClient : public mc_control::ControllerClient
   {
     const auto & mesh = boost::get<rbd::parsers::Geometry::Mesh>(visual.geometry.data);
     std::string path = convertURI(mesh.filename, mesh_path).string();
-    on_robot_mesh_callback(rid.c_str(), body.c_str(), name.c_str(), path.c_str(), static_cast<float>(mesh.scale),
+    on_robot_mesh_callback(rid.c_str(), body.c_str(), name.c_str(), path.c_str(), static_cast<float>(mesh.scaleV[2]),
                            McRtc::ToUnity(visual.origin));
   }
 
