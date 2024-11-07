@@ -5,7 +5,7 @@ Sample plugin + project to display mc_rtc robots in Unity
 
 Requirements 
 --
-Here are the latest tool version tested to compile the project.
+Here are the latest tool versions tested to compile the project.
 
 |  mc_rtc | MSVC | Unity |
 | -------- | ------- | ------- | 
