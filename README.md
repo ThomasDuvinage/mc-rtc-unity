@@ -3,6 +3,14 @@ mc-rtc-unity
 
 Sample plugin + project to display mc_rtc robots in Unity
 
+Requirements 
+--
+Here are the latest tool version tested to compile the project.
+
+|  mc_rtc | MSVC | Unity |
+| -------- | ------- | ------- | 
+| [v2.12.0](https://github.com/jrl-umi3218/mc_rtc/releases/tag/v2.12.0)  | 2022    | 2021.3.6f1 |
+
 Usage
 --
 
@@ -29,4 +37,16 @@ Building the plugin in your own project
 cmake -B plugin/build -S plugin -DCMAKE_BUILD_TYPE=RelWithDebInfo -DUNITY_PROJECT_DIR=$HOME/MyProject
 ```
 
+Be careful here, if you decide to build the plugin with MSVC make sure that the build type is correctly set to `RelWithDebInfo`. Otherwise, the plugin may fail to connect with the remotly running controller. 
+
 - Copy `Project/Assets/McRtc/` folder into your own asset folder
+
+Troubleshooting 
+--
+
+In order to test if the plugin, you can :
+- Start a local controller (e.g. `rosrun mc_rtc_ticker mc_rtc_ticker`)
+- Run test_plugin from `Project/Assets/Plugins`. (You may have to edit the ip address to match your)
+
+
+
